@@ -1,38 +1,51 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Manage students and tests with enhanced styling">
+  <meta name="author" content="Your Name">
   <title>Student Test Management</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
 
-    select,
-    button {
-      margin: 10px 0;
-      padding: 10px;
-      font-size: 16px;
-    }
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
+<body>
+  <header class="bg-primary text-white text-center py-3">
+    <h1>Student Test Management</h1>
+    <p>Manage students, tests, and generate detailed reports</p>
+  </header>
 
-    th,
-    td {
-      padding: 10px;
-      border: 1px solid #ddd;
-      text-align: center;
-    }
+  <main class="container my-4">
+    <div class="row">
+      <div class="col-md-6">
+        <label for="studentSelect" class="form-label">Select a Student:</label>
+        <select id="studentSelect" class="form-select" onchange="onStudentChange()"></select>
+      </div>
+      <div class="col-md-6">
+        <label for="testSelect" class="form-label">Select a Test:</label>
+        <select id="testSelect" class="form-select" onchange="onTestChange()"></select>
+      </div>
+    </div>
 
-    th {
-      background-color: #f4f4f4;
-    }
-  </style>
+    <div id="testDetails" class="mt-4">
+      <!-- Test details will be dynamically populated here -->
+    </div>
+
+    <div class="text-center mt-4">
+      <button class="btn btn-success" onclick="printPDF()">Print PDF</button>
+    </div>
+  </main>
+
+  <footer class="bg-light text-center py-3">
+    <p>&copy; 2024 Your Name. All rights reserved.</p>
+  </footer>
+
+  <!-- Bootstrap JS (Optional, for interactive components) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
 
   <script>
     let selectedStudentId = null;
@@ -134,27 +147,35 @@
       const resultDiv = document.getElementById('testDetails');
 
       if (results && results.length > 0) {
-        // Generate table headers dynamically based on keys of the first object
-        const headers = Object.keys(results[0]);
+        // Define the desired column order
+        const columnOrder = [
+          "description",
+          "points",
+          "maxPoints",
+          "seuil1",
+          "seuil2",
+          "seuil3",
+          "totalSeuil"
+        ];
 
         // Build the HTML table
         let tableHTML = `
-          <h3>Test Results</h3>
-          <table>
-            <thead>
-              <tr>
-                ${headers.map(header => `<th>${header}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody>
-              ${results.map(row => `
-                <tr>
-                  ${headers.map(header => `<td>${row[header]}</td>`).join('')}
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        `;
+      <h3>Test Results</h3>
+      <table class="table table-bordered table-striped">
+        <thead>
+          <tr>
+            ${columnOrder.map(header => `<th>${header}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${results.map(row => `
+            <tr>
+              ${columnOrder.map(header => `<td>${row[header] !== undefined ? row[header] : ''}</td>`).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
 
         resultDiv.innerHTML = tableHTML;
       } else {
@@ -208,18 +229,6 @@
     window.onload = loadStudents;
   </script>
 
-</head>
-
-<body>
-  <h1>Student Test Management</h1>
-  <label for="studentSelect">Student:</label>
-  <select id="studentSelect" onchange="onStudentChange()"></select>
-  <br>
-  <label for="testSelect">Test:</label>
-  <select id="testSelect" onchange="onTestChange()"></select>
-  <br>
-  <div id="testDetails"></div>
-  <button onclick="printPDF()">Print PDF</button>
 </body>
 
 </html>

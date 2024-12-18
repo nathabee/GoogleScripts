@@ -144,6 +144,7 @@ function generatePDF(studentId, testId) {
     const student = students.find(row => row[0] == studentId);
     if (!student) throw new Error("Student not found.");
     const studentName = `${student[1]} ${student[2]}`;
+    const grade = `${student[3]}`;
 
     // Fetch test results
     const results = testResultsSheet.getRange(2, 1, testResultsSheet.getLastRow() - 1, 8).getValues();
@@ -196,8 +197,8 @@ function generatePDF(studentId, testId) {
     Logger.log(`Backend: insertChart  called  `);
     // Prepare data for the template
     const data = {
-      studentName,
-      testId,
+      studentName: studentName,
+      grade: grade,
       testResults: filteredResults,
     };
 
