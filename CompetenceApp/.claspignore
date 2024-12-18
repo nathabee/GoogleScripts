@@ -1,0 +1,7 @@
+../example-sheets/
+../documentation/
+node_modules/
+.git/
+.DS_Store
+../README.md
+obsolete*

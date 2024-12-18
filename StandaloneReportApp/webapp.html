@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>PDF Report Generator</title>
+    <style>
+      body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+      button {
+        padding: 10px 20px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      button:hover { background-color: #45a049; }
+    </style>
+    <script>
+      function generatePDF() {
+        google.script.run
+          .withSuccessHandler(downloadPDF)
+          .withFailureHandler((error) => alert("Error: " + error.message))
+          .generatePDF();
+      }
+
+      function downloadPDF(fileUrl) {
+        // Create a temporary link element
+        const link = document.createElement('a');
+        link.href = fileUrl;
+        link.download = 'Performance_Report.pdf'; // Suggested file name
+        document.body.appendChild(link);
+
+        // Trigger the download
+        link.click();
+
+        // Clean up
+        document.body.removeChild(link);
+        alert("PDF successfully generated and downloaded!");
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Generate Performance Report</h1>
+    <p>Click the button below to generate and download a PDF report.</p>
+    <button onclick="generatePDF()">Generate PDF</button>
+  </body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        color: #333;
+      }
+      h1, h2 { text-align: center; color: #2E3B4E; }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th, td {
+        padding: 10px;
+        border: 1px solid #ddd;
+        text-align: center;
+      }
+      th { background-color: #4CAF50; color: white; }
+      tr:nth-child(even) { background-color: #f2f2f2; }
+      img { display: block; margin: 20px auto; max-width: 500px; }
+    </style>
+  </head>
+  <body>
+    <h1>Performance Report</h1>
+    <p>Generated Report Based on Google Sheets Data</p>
+
+    <!-- Radar Chart -->
+    <h2>Radar Chart</h2>
+    <img src="cid:chart_image" alt="Radar Chart" />
+
+    <!-- Data Table -->
+    <h2>Data Table</h2>
+    <table>
+      <tr>
+        <th>Category</th>
+        <th>Value 1</th>
+        <th>Value 2</th>
+        <th>Value 3</th>
+      </tr>
+      <? for (var i = 0; i < data.length; i++) { ?>
+      <tr>
+        <td><?= data[i][0] ?></td>
+        <td><?= data[i][1] ?></td>
+        <td><?= data[i][2] ?></td>
+        <td><?= data[i][3] ?></td>
+      </tr>
+      <? } ?>
+    </table>
+  </body>
+</html>
