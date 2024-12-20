@@ -2,7 +2,7 @@
 
 ## GoogleScripts Repository
 
-This repository contains two projects: **CompetenceApp** and **StandaloneReportApp**. Each project is a standalone Google Apps Script designed to integrate with Google Sheets to provide functionality for specific use cases.
+This repository contains Google Apps Script projects.
 
 ### **Projects Overview**
 
