@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <?!= include('css'); ?>
+  </head>
+  <body>
+    {{NAVBAR}}
+    <div class="container">
+      <!-- Your content goes here -->
+      <br>
+      <h1 class="text-center"> MultiPageApp</h1>
+      <p style="font-size: 44px;">Welcome to the MultiPageApp! This app is an
+          example of creating a WebApp with multiple pages using pseudo-routing in Google Apps Script. Learn how to
+          structure your app, manage dynamic content, and implement navigation seamlessly. This project is a foundation
+          for building robust multipage WebApps with minimal effort!</p>
+      <p style="font-size: 20px;">
+          The structure of this project is inspired from BPWEBS example
+          <a href="https://www.bpwebs.com/create-a-multi-page-google-apps-script-web-app" target="_blank">
+              Multiple Page Webapp Example
+          </a>,
+          where you can find the original example having the foundations of a multiple page WebApp.
+      </p>
+    </div>
+    <?!= include('Script'); ?>
+  </body>
+</html>

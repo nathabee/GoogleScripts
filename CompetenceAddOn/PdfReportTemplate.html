@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+
+ 
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
+      h1, h2 { text-align: center; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+      th { background-color: #f4f4f4; }
+    </style>
+  </head>
+  <body>
+    <h1>Test Report</h1>
+    <h2>Student: <?= data.studentName ?></h2>
+    <p>Grade: <?= data.grade ?></p> 
+
+    <h3>Test Details</h3>
+    <table>
+      <tr>
+        <th>Description</th>
+        <th>Points</th>
+        <th>Max Points</th>
+        <th>Seuil 1</th>
+        <th>Seuil 2</th>
+        <th>Seuil 3</th>
+        <th>Total Seuil</th>
+      </tr>
+      <? for (let result of data.testResults) { ?>
+        <tr>
+          <td><?= result.description ?></td>
+          <td><?= result.points ?></td>
+          <td><?= result.maxPoints ?></td>
+          <td><?= result.seuil1 ?></td>
+          <td><?= result.seuil2 ?></td>
+          <td><?= result.seuil3 ?></td>
+          <td><?= result.totalSeuil ?></td>
+        </tr>
+      <? } ?>
+    </table>
+    
+
+    <h3>Radar Chart</h3>
+    <img src="data:image/png;base64,<?= chartImage ?>" alt="Radar Chart" style="display: block; margin: 20px auto; max-width: 600px;">
+  </body>
+</html>

@@ -6,18 +6,34 @@ function getSheetId() {
   return "1HnFvjPYs59KjS8P0EC7Obos4_OEJWvjyzjRV-yThh08"; // Replace with your actual Sheet ID
 }
 
-/**
- * Helper function to include content from another HTML file.
- * @param {string} filename - The name of the HTML file to include.
- * @return {string} The content of the file.
- */
+function doGet(e) {
+  const page = e.parameter.page || 'home'; // Default to 'home' page
+  let template;
+
+  switch (page) {
+    case 'form':
+      template = HtmlService.createTemplateFromFile('form');
+      break;
+    case 'report':
+      template = HtmlService.createTemplateFromFile('report');
+      break;
+    default: // Default to 'home'
+      template = HtmlService.createTemplateFromFile('home');
+  }
+
+  // Pass the base URL to the template
+  template.baseUrl = getBaseUrl();
+  return template.evaluate().setTitle('Student Test Management');
+}
+
+
+// Function to include other HTML files as templates
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
-function doGet() {
-  return HtmlService.createHtmlOutputFromFile('index').setTitle('Student Test Management');
-}
+
+
 
 /**
  * Load configuration data from the Config sheet.
@@ -203,7 +219,7 @@ function generatePDF(studentId, testId) {
     };
 
     // Prepare the PDF template
-    const template = HtmlService.createTemplateFromFile('report');
+    const template = HtmlService.createTemplateFromFile('pdfReportTemplate');
     template.data = data;
     template.chartImage = chartBase64;
 

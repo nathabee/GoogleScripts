@@ -1,45 +1,235 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <style>
-      body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
-      h1, h2 { text-align: center; }
-      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-      th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-      th { background-color: #f4f4f4; }
-    </style>
-  </head>
-  <body>
-    <h1>Test Report</h1>
-    <h2>Student: <?= data.studentName ?></h2>
-    <p>Grade: <?= data.grade ?></p> 
+<html lang="en">
 
-    <h3>Test Details</h3>
-    <table>
-      <tr>
-        <th>Description</th>
-        <th>Points</th>
-        <th>Max Points</th>
-        <th>Seuil 1</th>
-        <th>Seuil 2</th>
-        <th>Seuil 3</th>
-        <th>Total Seuil</th>
-      </tr>
-      <? for (let result of data.testResults) { ?>
-        <tr>
-          <td><?= result.description ?></td>
-          <td><?= result.points ?></td>
-          <td><?= result.maxPoints ?></td>
-          <td><?= result.seuil1 ?></td>
-          <td><?= result.seuil2 ?></td>
-          <td><?= result.seuil3 ?></td>
-          <td><?= result.totalSeuil ?></td>
-        </tr>
-      <? } ?>
-    </table>
-    
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Report page of the student test management system">
+  <meta name="author" content="Your Name">
+  <title>Report Page</title>
 
-    <h3>Radar Chart</h3>
-    <img src="data:image/png;base64,<?= chartImage ?>" alt="Radar Chart" style="display: block; margin: 20px auto; max-width: 600px;">
-  </body>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+
+</head>
+
+<body>
+
+  <?= include('header') ?>
+ 
+
+  <main class="container my-4">
+    <div class="row">
+      <div class="col-md-6">
+        <label for="studentSelect" class="form-label">Select a Student:</label>
+        <select id="studentSelect" class="form-select" onchange="onStudentChange()"></select>
+      </div>
+      <div class="col-md-6">
+        <label for="testSelect" class="form-label">Select a Test:</label>
+        <select id="testSelect" class="form-select" onchange="onTestChange()"></select>
+      </div>
+    </div>
+
+    <div id="testDetails" class="mt-4">
+      <!-- Test details will be dynamically populated here -->
+    </div>
+
+    <div class="text-center mt-4">
+      <button class="btn btn-success" onclick="printPDF()">Generate PDF</button>
+    </div>
+  </main>
+
+  <?= include('footer') ?>
+  
+
+  <!-- Bootstrap JS (Optional, for interactive components) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+
+
+  <script>
+    let selectedStudentId = null;
+    let selectedTestId = null;
+
+    // Load students on page load
+    function loadStudents() {
+      google.script.run.withSuccessHandler(renderStudents).getStudents();
+    }
+
+    // Render the list of students in the dropdown
+    function renderStudents(students) {
+      const studentSelect = document.getElementById('studentSelect');
+      studentSelect.innerHTML = '<option value="">Select a student</option>';
+      students.forEach(student => {
+        const option = document.createElement('option');
+        option.value = student.studentId;
+        option.textContent = `${student.firstName} ${student.lastName} (${student.grade})`;
+        studentSelect.appendChild(option);
+      });
+    }
+
+    // Fetch tests for the selected student
+    function onStudentChange() {
+      const studentId = document.getElementById('studentSelect').value;
+
+      if (studentId) {
+        selectedStudentId = studentId;
+
+        const frontendStartTime = new Date();
+        console.log(`Frontend: Starting getTestsByStudent at ${frontendStartTime.toISOString()} for studentId: ${selectedStudentId}`);
+
+        google.script.run
+          .withSuccessHandler(data => {
+            const frontendEndTime = new Date();
+            console.log(`Frontend: Received response from getTestsByStudent at ${frontendEndTime.toISOString()} with data:`, data);
+
+            renderTests(data);
+          })
+          .withFailureHandler(error => {
+            const frontendErrorTime = new Date();
+            console.error(`Frontend: Error from getTestsByStudent at ${frontendErrorTime.toISOString()}:`, error);
+          })
+          .getTestsByStudent(selectedStudentId);
+      } else {
+        console.log('Frontend: No student selected.');
+        selectedStudentId = null;
+        clearTestsAndResults();
+      }
+    }
+
+
+
+
+    // Render the list of tests in the dropdown
+    function renderTests(tests) {
+      console.log('Tests received:', tests); // Logs the array to the console
+
+      const testSelect = document.getElementById('testSelect');
+      testSelect.innerHTML = '<option value="">Select a test</option>';
+
+      if (!tests || tests.length === 0) {
+        console.log('No tests available.');
+        testSelect.innerHTML += '<option value="">No tests available</option>';
+        return;
+      }
+
+      tests.forEach(test => {
+        const option = document.createElement('option');
+        option.value = test.testId;
+        option.textContent = `${test.catalogueName} - ${test.date}`;
+        testSelect.appendChild(option);
+      });
+    }
+
+
+    // Fetch results for the selected test
+    function onTestChange() {
+      const testId = document.getElementById('testSelect').value;
+      console.log('selected testId:', testId);
+      console.log('selected textContent:', document.getElementById('testSelect').textContent);
+      if (testId) {
+        selectedTestId = testId; // Set the selected test ID
+        google.script.run
+          .withSuccessHandler(renderTestDetails)
+          .withFailureHandler(error => console.error('Error fetching test results:', error))
+          .getTestResults(testId);
+      } else {
+        // Clear the results section if no test is selected
+        selectedTestId = null;
+        clearTestResults();
+      }
+    }
+
+    // Render the test results in a table
+    function renderTestDetails(results) {
+      console.log('Received test results:', results);
+
+      const resultDiv = document.getElementById('testDetails');
+
+      if (results && results.length > 0) {
+        // Define the desired column order
+        const columnOrder = [
+          "description",
+          "points",
+          "maxPoints",
+          "seuil1",
+          "seuil2",
+          "seuil3",
+          "totalSeuil"
+        ];
+
+        // Build the HTML table
+        let tableHTML = `
+      <h3>Test Results</h3>
+      <table class="table table-bordered table-striped">
+        <thead>
+          <tr>
+            ${columnOrder.map(header => `<th>${header}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${results.map(row => `
+            <tr>
+              ${columnOrder.map(header => `<td>${row[header] !== undefined ? row[header] : ''}</td>`).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+        resultDiv.innerHTML = tableHTML;
+      } else {
+        resultDiv.innerHTML = '<p>No details available for this test.</p>';
+      }
+    }
+
+
+    // Clear the test dropdown and results section
+    function clearTestsAndResults() {
+      document.getElementById('testSelect').innerHTML = '<option value="">Select a test</option>';
+      clearTestResults();
+    }
+
+    // Clear the results section
+    function clearTestResults() {
+      document.getElementById('testDetails').innerHTML = '';
+    }
+
+    // Print the PDF for the selected test
+    function printPDF() {
+      if (selectedStudentId && selectedTestId) {
+        google.script.run
+          .withSuccessHandler(downloadPDF)
+          .withFailureHandler(error => alert(`Error: ${error.message}`))
+          .generatePDF(selectedStudentId, selectedTestId);
+      } else {
+        alert('Please select both a student and a test first.');
+      }
+    }
+
+    // Download the generated PDF
+    function downloadPDF(response) {
+      const { fileUrl, studentName } = response;
+
+      // Create a temporary link element
+      const link = document.createElement('a');
+      link.href = fileUrl;
+      link.download = `Report_${studentName}_${selectedTestId}.pdf`; // Customized filename
+      document.body.appendChild(link);
+
+      // Trigger the download
+      link.click();
+
+      // Clean up
+      document.body.removeChild(link);
+      alert(`PDF successfully generated and downloaded for ${studentName}!`);
+    }
+
+    // Load students on page load
+    window.onload = loadStudents;
+  </script>
+
+</body>
+
 </html>

@@ -1,22 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
-
-<head>
+<html>
+  <head>
+    <base target="_top">
+ 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Manage students and tests with enhanced styling">
+  <meta name="description" content="Report page of the student test management system">
   <meta name="author" content="Your Name">
-  <title>Student Test Management</title>
+  <title>Report Page</title>
 
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+
 </head>
 
 <body>
-  <header class="bg-primary text-white text-center py-3">
-    <h1>Student Test Management</h1>
-    <p>Manage students, tests, and generate detailed reports</p>
-  </header>
+
+  <?= include('header') ?>
+ 
 
   <main class="container my-4">
     <div class="row">
@@ -35,16 +37,16 @@
     </div>
 
     <div class="text-center mt-4">
-      <button class="btn btn-success" onclick="printPDF()">Print PDF</button>
+      <button class="btn btn-success" onclick="printPDF()">Generate PDF</button>
     </div>
   </main>
 
-  <footer class="bg-light text-center py-3">
-    <p>&copy; 2024 Your Name. All rights reserved.</p>
-  </footer>
+  <?= include('footer') ?>
+  
 
   <!-- Bootstrap JS (Optional, for interactive components) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
 
 
   <script>

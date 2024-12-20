@@ -19,6 +19,8 @@ This repository contains two projects: **CompetenceApp** and **StandaloneReportA
 - **Example Data**:
   - Example data is provided in `example-sheets/CompetenceApp.xlsx`.
 
+---
+
 #### StandaloneReportApp
 - **Purpose**:
   StandaloneReportApp focuses on creating a simple standalone application for generating and downloading formatted PDF reports.
@@ -30,6 +32,52 @@ This repository contains two projects: **CompetenceApp** and **StandaloneReportA
 - **Example Data**:
   - Example data is provided in `example-sheets/StandaloneReportApp-Data.csv`.
 
+---
+
+#### CompetenceAddOn
+- **Purpose**:  
+  CompetenceAddOn is a Google Sheets add-on version of CompetenceApp, providing similar features directly within the Google Sheets environment:  
+  - Add and manage test types and results using sidebars integrated into Google Sheets.  
+  - Generate detailed competency reports, including radar charts, from the Google Sheets data.  
+
+- **Core Files**:  
+  - `appsscript.json`: Configuration file for the Apps Script project.  
+  - `Code.js`: Backend logic for integrating with Google Sheets and generating PDFs.  
+  - `MakeReportForm.html`: Form interface for selecting students and tests to generate reports.  
+  - `PdfReportTemplate.html`: Template used for generating detailed PDF reports.  
+  - `report.html`: Base template for managing reports.  
+  - `TestResultForm.html`: Sidebar interface for entering test results.  
+  - `TestTypeForm.html`: Sidebar interface for managing test types.  
+
+- **Usage**:  
+  - Install the add-on in Google Sheets.  
+  - Use the "CompetenceApp" menu to access the features:  
+    - Manage Test Types: Open a sidebar to add, edit, or delete test types.  
+    - Insert Test Results: Open a sidebar to log test results for students.  
+    - Generate Test Reports: Open a form to select students and tests for generating detailed PDF reports.  
+
+---
+
+#### MultiPageApp
+- **Purpose**:  
+  MultiPageApp demonstrates how to create a multipage web app using Google Apps Script. Features include:  
+  - Pseudo-routing for navigating between multiple pages.  
+  - A shared layout for consistent design across pages.  
+  - Example pages to showcase use cases of multipage web apps.  
+
+- **Core Files**:  
+  - `Code.gs`: Backend logic for routing and serving HTML pages dynamically.  
+  - `Page1.html`, `Page2.html`, `Page3.html`, `Page4.html`: Example pages for the app.  
+  - `header.html` and `footer.html`: Shared components for consistent page design.  
+  - `css.html`: Stylesheet for the app layout.  
+
+- **Example Pages**:  
+  - Page 1: Introduction and purpose of the app.  
+  - Page 2: Demonstrates managing data through forms.  
+  - Page 3: Displays dynamically loaded data.  
+  - Page 4: Example report generation.  
+
+---
 ---
 
 ### **Installation Instructions**
@@ -98,16 +146,29 @@ cd GoogleScripts
 
 ### **Usage Instructions**
 
-1. **CompetenceApp**:
-   - Open the deployed web app URL (from Apps Script).
-   - Manage students and test results using the interface.
-   - Generate competency reports with radar charts and download them as PDFs.
 
-2. **StandaloneReportApp**:
-   - Open the deployed web app URL (from Apps Script).
-   - Use the simple interface to generate and download PDF reports with radar charts.
+1. **CompetenceApp**:  
+   - Open the deployed web app URL (from Apps Script).  
+   - Manage students and test results using the interface.  
+   - Generate competency reports with radar charts and download them as PDFs.  
+
+2. **CompetenceAddOn**:  
+   - Install the add-on in Google Sheets.  
+   - Use the "CompetenceApp" menu in Google Sheets to manage test data and generate reports.  
+
+3. **StandaloneReportApp**:  
+   - Open the deployed web app URL (from Apps Script).  
+   - Use the simple interface to generate and download PDF reports with radar charts.  
+
+4. **MultiPageApp**:  
+   - Open the deployed web app URL (from Apps Script).  
+   - Navigate between pages using the sidebar or navigation links to explore multipage functionality.  
+   - Use it as a foundation for creating custom multipage web apps.  
 
 ---
+
+
+
 
 ### **Documentation**
 
