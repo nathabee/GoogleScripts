@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Form page of the student test management system">
+    <meta name="author" content="Your Name">
+    <title>Form Page</title>
+ 
+    <base target="_top">
+
+    <?!= include('css'); ?>
+</head>
+
+<body>
+    {{NAVBAR}}
+    <div class="container">
+
+
+
+        <main class="container my-4">
+            <h2 class="text-center mb-4">Update Student Information</h2>
+            <form onsubmit="submitForm(event)">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Student Name</label>
+                    <input type="text" id="name" class="form-control" placeholder="Enter student name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="grade" class="form-label">Grade</label>
+                    <input type="text" id="grade" class="form-control" placeholder="Enter grade" required>
+                </div>
+                <div class="mb-3">
+                    <label for="score" class="form-label">Test Score</label>
+                    <input type="number" id="score" class="form-control" placeholder="Enter test score" required>
+                </div>
+                <button type="submit" class="btn btn-success">Submit</button>
+            </form>
+
+            <script>
+                function submitForm(e) {
+                    e.preventDefault();
+                    const name = document.getElementById('name').value;
+                    const grade = document.getElementById('grade').value;
+                    const score = document.getElementById('score').value;
+
+                    google.script.run
+                        .withSuccessHandler(() => alert('Form submitted successfully!'))
+                        .submitData({ name, grade, score });
+                }
+            </script>
+        </main>
+
+    </div>
+
+    <!-- Dynamically include footer -->
+    <?!= include('Footer') ?>
+
+
+    <!-- Bootstrap JS (Optional, for interactive components) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

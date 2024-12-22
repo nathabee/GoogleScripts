@@ -5,34 +5,66 @@
 function getSheetId() {
   return "1HnFvjPYs59KjS8P0EC7Obos4_OEJWvjyzjRV-yThh08"; // Replace with your actual Sheet ID
 }
-
 function doGet(e) {
-  const page = e.parameter.page || 'home'; // Default to 'home' page
-  let template;
+  let page = e.parameter.mode || "Home";
+  let html = HtmlService.createTemplateFromFile(page).evaluate();
+  let htmlOutput = HtmlService.createHtmlOutput(html);
+  htmlOutput.addMetaTag('viewport', 'width=device-width, initial-scale=1');
 
-  switch (page) {
-    case 'form':
-      template = HtmlService.createTemplateFromFile('form');
-      break;
-    case 'report':
-      template = HtmlService.createTemplateFromFile('report');
-      break;
-    default: // Default to 'home'
-      template = HtmlService.createTemplateFromFile('home');
+  //Replace {{NAVBAR}} with the Navbar content
+  htmlOutput.setContent(htmlOutput.getContent().replace("{{NAVBAR}}",getNavbar(page)));
+  return htmlOutput;
+}
+
+ 
+//Create Navigation Bar
+function getNavbar(activePage) {
+  var scriptURLHome = getScriptURL();
+  var scriptURLForm = getScriptURL("mode=Form");
+  var scriptURLReport = getScriptURL("mode=Report");  
+
+  var navbar = 
+    `<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+        <a class="navbar-brand" href="${scriptURLHome}" target="_top">Competence App</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+          <div class="navbar-nav">
+            <a class="nav-item nav-link ${activePage === 'Home' ? 'active' : ''}" href="${scriptURLHome}" target="_top">Home</a>
+            <a class="nav-item nav-link ${activePage === 'Form' ? 'active' : ''}" href="${scriptURLForm}" target="_top">Form</a>
+            <a class="nav-item nav-link ${activePage === 'Report' ? 'active' : ''}" href="${scriptURLReport}" target="_top">Report</a> 
+          </div>
+        </div>
+        this is the value of my URL report : ${scriptURLReport}
+        </div>
+      </nav>`;
+  return navbar;
+}
+
+ 
+
+//returns the URL of the Google Apps Script web app
+function getScriptURL(qs = null) {
+  var url = ScriptApp.getService().getUrl();
+  Logger.log("getScriptURL url ",url);
+  Logger.log("getScriptURL qs ",qs);
+  if(qs){
+    if (qs.indexOf("?") === -1) {
+      qs = "?" + qs;
+    }
+    url = url + qs;
   }
-
-  // Pass the base URL to the template
-  template.baseUrl = getBaseUrl();
-  return template.evaluate().setTitle('Student Test Management');
+  Logger.log("getScriptURL new url ",url);
+  return url;
 }
 
 
-// Function to include other HTML files as templates
+//INCLUDE HTML PARTS, EG. JAVASCRIPT, CSS, OTHER HTML FILES
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
-
-
 
 
 /**
@@ -168,6 +200,11 @@ function generatePDF(studentId, testId) {
       .filter(row => row[0] == testId)
       .map(row => ({
         description: row[1],
+        points: row[2],
+        maxPoints: row[3],
+        seuil1: row[4],
+        seuil2: row[5],
+        seuil3: row[6],
         totalSeuil: row[7], // Assume `totalSeuil` is the 8th column
       }));
     if (filteredResults.length === 0) throw new Error("No results found for the test.");
@@ -219,7 +256,7 @@ function generatePDF(studentId, testId) {
     };
 
     // Prepare the PDF template
-    const template = HtmlService.createTemplateFromFile('pdfReportTemplate');
+    const template = HtmlService.createTemplateFromFile('PdfReportTemplate');
     template.data = data;
     template.chartImage = chartBase64;
 

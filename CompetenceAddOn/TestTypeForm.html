@@ -47,6 +47,14 @@
     <label for="maxScore">Max Score:</label>
     <input type="number" id="maxScore" name="maxScore" required>
 
+
+    <label for="seuil1">seuil1:</label>
+    <input type="number" id="seuil1" name="seuil1" required>
+
+
+    <label for="seuil2">seuil2:</label>
+    <input type="number" id="seuil2" name="seuil2" required>
+
     <button type="submit">Add Test Type</button>
   </form>
 
@@ -85,6 +93,8 @@
               <th>Catalogue ID</th>
               <th>Description</th>
               <th>Max Score</th>
+              <th>seuil1</th>
+              <th>seuil2</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -95,6 +105,8 @@
                 <td>${type.catalogueID}</td>
                 <td>${type.description}</td>
                 <td>${type.maxScore}</td>
+                <td>${type.seuil1}</td>
+                <td>${type.seuil2}</td>
                 <td>
                   <button onclick="deleteTestType('${type.testTypeID}')">Delete</button>
                 </td>
@@ -113,8 +125,10 @@
     const testType = document.getElementById('testType').value;
     const catalogueID = document.getElementById('catalogueSelect').value;
     const maxScore = parseInt(document.getElementById('maxScore').value, 10);
+    const seuil1 = parseInt(document.getElementById('seuil1').value, 10);
+    const seuil2 = parseInt(document.getElementById('seuil2').value, 10);
 
-    if (!catalogueID || !testType || isNaN(maxScore)) {
+    if (!catalogueID || !testType || isNaN(maxScore)|| isNaN(seuil1)|| isNaN(seuil2)) {
       alert("Please fill out all fields correctly.");
       return;
     }
@@ -123,6 +137,8 @@
       catalogueID: catalogueID,
       testType: testType,
       maxScore: maxScore,
+      seuil1: seuil1,
+      seuil2: seuil2,
     };
 
     // Log the data for debugging

@@ -9,7 +9,7 @@ function doGet(e) {
   return htmlOutput;
 }
 
-
+ 
 //Create Navigation Bar
 function getNavbar(activePage) {
   var scriptURLHome = getScriptURL();
@@ -37,18 +37,23 @@ function getNavbar(activePage) {
   return navbar;
 }
 
+ 
 
 //returns the URL of the Google Apps Script web app
 function getScriptURL(qs = null) {
   var url = ScriptApp.getService().getUrl();
+  Logger.log("getScriptURL url ",url);
+  Logger.log("getScriptURL qs ",qs);
   if(qs){
     if (qs.indexOf("?") === -1) {
       qs = "?" + qs;
     }
     url = url + qs;
   }
+  Logger.log("getScriptURL new url ",url);
   return url;
 }
+
 
 //INCLUDE HTML PARTS, EG. JAVASCRIPT, CSS, OTHER HTML FILES
 function include(filename) {

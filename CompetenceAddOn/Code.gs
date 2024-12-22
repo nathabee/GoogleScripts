@@ -362,10 +362,17 @@ function generatePDF(studentId, testId) {
       .filter(row => row[0] == testId)
       .map(row => ({
         description: row[1],
+        points: row[2],
+        maxPoints: row[3],
+        seuil1: row[4],
+        seuil2: row[5],
+        seuil3: row[6],
         totalSeuil: row[7], // Assume `totalSeuil` is the 8th column
       }));
     if (filteredResults.length === 0) throw new Error("No results found for the test.");
 
+
+    
     // Prepare data for radar chart
     const labels = filteredResults.map(r => r.description);
     const values = filteredResults.map(r => r.totalSeuil);
@@ -404,7 +411,7 @@ function generatePDF(studentId, testId) {
     const chartBlob = chart.getBlob().getAs('image/png');
     const chartBase64 = Utilities.base64Encode(chartBlob.getBytes());
 
-    Logger.log(`Backend: insertChart  called  `);
+    Logger.log(`Backend: insertChart  called  testResults`,testResults);
     // Prepare data for the template
     const data = {
       studentName: studentName,
