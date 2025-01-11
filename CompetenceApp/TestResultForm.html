@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+  <style>
+    form {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    input, button {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 16px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+
+
+<body>
+  <h3>Manage Test Results</h3>
+  <form id="testResultForm">
+    <!-- Student Selection -->
+    <label for="studentSelect">Student:</label>
+    <select id="studentSelect" name="studentId" required>
+      <option value="">Select a student</option>
+    </select>
+
+    <!-- Test Selection -->
+    <label for="testSelect">Test:</label>
+    <select id="testSelect" name="testId" required>
+      <option value="">Select a test</option>
+    </select>
+
+    <!-- Test Type Selection -->
+    <label for="testTypeSelect">Test Type:</label>
+    <select id="testTypeSelect" name="testTypeId" required>
+      <option value="">Select a test type</option>
+    </select>
+
+    <!-- Points -->
+    <label for="points">Points:</label>
+    <input type="number" id="points" name="points" required>
+
+    <!-- Max Score -->
+    <label for="maxScore">Max Score:</label>
+    <input type="number" id="maxScore" name="maxScore" readonly>
+
+    <!-- Result -->
+    <label for="resultSelect">Result:</label>
+    <select id="resultSelect" name="result" required>
+      <option value="Pending">Pending</option>
+      <option value="Pass">Pass</option>
+      <option value="Error">Error</option>
+    </select>
+
+    <button type="submit">Save Test Result</button>
+  </form>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Populate the student dropdown
+      google.script.run.withSuccessHandler(renderStudents).getStudents();
+    });
+
+    document.getElementById('studentSelect').addEventListener('change', function () {
+      const studentId = this.value;
+      if (studentId) {
+        google.script.run
+          .withSuccessHandler(renderTests)
+          .getTestsByStudent(studentId);
+      }
+    });
+
+    document.getElementById('testSelect').addEventListener('change', function () {
+      const testId = this.value;
+      console.log(`Frontend: Selected TestID: ${testId}`);
+
+      if (testId) {
+        google.script.run
+          .withSuccessHandler(renderTestTypes)
+          .withFailureHandler(error => console.error(`Error fetching TestTypes: ${error.message}`))
+          .getCatalogueIdByTestId(testId); // Fetch CatalogueID for TestID
+      } else {
+        console.log('Frontend: No TestID selected.');
+        clearTestTypeDropdown();
+      }
+    });
+
+
+    document.getElementById('testTypeSelect').addEventListener('change', function () {
+      const testTypeId = this.value;
+      if (testTypeId) {
+        google.script.run
+          .withSuccessHandler(updateMaxScore)
+          .getTestTypeMaxScore(testTypeId);
+      }
+    });
+
+    document.getElementById('testResultForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      google.script.run
+        .withSuccessHandler(() => alert('Test result saved successfully!'))
+        .withFailureHandler(error => alert(`Error: ${error.message}`))
+        .addTestResult(Object.fromEntries(formData.entries()));
+    });
+
+    function renderStudents(students) {
+      const studentSelect = document.getElementById('studentSelect');
+      studentSelect.innerHTML = '<option value="">Select a student</option>';
+      students.forEach(student => {
+        const option = document.createElement('option');
+        option.value = student.studentId;
+        option.textContent = `${student.firstName} ${student.lastName}`;
+        studentSelect.appendChild(option);
+      });
+    }
+
+    function renderTests(tests) {
+      const testSelect = document.getElementById('testSelect');
+      testSelect.innerHTML = '<option value="">Select a test</option>';
+      tests.forEach(test => {
+        const option = document.createElement('option');
+        option.value = test.testId;
+        option.textContent = `${test.catalogueName} - ${test.date}`;
+        testSelect.appendChild(option);
+      });
+    }
+
+    function renderTestTypes(catalogueId) {
+      if (!catalogueId) {
+        console.error('Frontend: No CatalogueID received.');
+        clearTestTypeDropdown();
+        return;
+      }
+
+      console.log(`Frontend: Received CatalogueID: ${catalogueId}`);
+      google.script.run
+        .withSuccessHandler(populateTestTypeDropdown)
+        .withFailureHandler(error => console.error(`Error fetching TestTypes: ${error.message}`))
+        .getTestTypesByCatalogueId(catalogueId);
+    }
+
+    function populateTestTypeDropdown(testTypes) {
+      const testTypeSelect = document.getElementById('testTypeSelect');
+      testTypeSelect.innerHTML = '<option value="">Select a test type</option>';
+
+      if (!testTypes || testTypes.length === 0) {
+        console.log('Frontend: No TestTypes available.');
+        testTypeSelect.innerHTML += '<option value="">No TestTypes available</option>';
+        return;
+      }
+
+      console.log(`Frontend: Populating TestTypes: ${JSON.stringify(testTypes)}`);
+      testTypes.forEach(testType => {
+        const option = document.createElement('option');
+        option.value = testType.testTypeId;
+        option.textContent = testType.description;
+        testTypeSelect.appendChild(option);
+      });
+    }
+
+    function clearTestTypeDropdown() {
+      const testTypeSelect = document.getElementById('testTypeSelect');
+      testTypeSelect.innerHTML = '<option value="">Select a test type</option>';
+    }
+
+
+    function updateMaxScore(maxScore) {
+      document.getElementById('maxScore').value = maxScore;
+    }
+  </script>
+</body>
+

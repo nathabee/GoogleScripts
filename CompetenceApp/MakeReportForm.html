@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+  <head>
+ 
+  <base target="_top">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    select, button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 16px;
+      box-sizing: border-box;
+    }
+    label {
+      font-weight: bold;
+      margin-bottom: 8px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <h3>Generate Test Report</h3>
+  <form id="reportForm">
+    <label for="studentSelect">Select Student:</label>
+    <select id="studentSelect" required>
+      <option value="">-- Select a Student --</option>
+    </select>
+
+    <label for="testSelect">Select Test:</label>
+    <select id="testSelect" required>
+      <option value="">-- Select a Test --</option>
+    </select>
+
+    <button type="submit">Generate PDF</button>
+  </form>
+
+  <script>
+    let selectedStudentId = null;
+
+    // Populate the student dropdown
+    google.script.run.withSuccessHandler(renderStudents).getStudents();
+
+    function renderStudents(students) {
+      const studentSelect = document.getElementById('studentSelect');
+      students.forEach(student => {
+        const option = document.createElement('option');
+        option.value = student.studentId;
+        option.textContent = `${student.firstName} ${student.lastName} (${student.grade})`;
+        studentSelect.appendChild(option);
+      });
+    }
+
+    // Fetch tests for the selected student
+    document.getElementById('studentSelect').addEventListener('change', function() {
+      const studentId = this.value;
+      selectedStudentId = studentId;
+      if (studentId) {
+        google.script.run.withSuccessHandler(renderTests).getTestsByStudent(studentId);
+      }
+    });
+
+    // Populate the test dropdown
+    function renderTests(tests) {
+      const testSelect = document.getElementById('testSelect');
+      testSelect.innerHTML = '<option value="">-- Select a Test --</option>'; // Clear previous options
+      tests.forEach(test => {
+        const option = document.createElement('option');
+        option.value = test.testId;
+        option.textContent = `${test.catalogueName} - ${test.date}`;
+        testSelect.appendChild(option);
+      });
+    }
+
+    // Handle form submission
+    document.getElementById('reportForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const testId = document.getElementById('testSelect').value;
+
+      if (selectedStudentId && testId) {
+        google.script.run
+          .withSuccessHandler(() => {
+            alert('PDF successfully generated!');
+          })
+          .withFailureHandler(error => {
+            alert('Error generating PDF: ' + error.message);
+          })
+          .generatePDF(selectedStudentId, testId);
+      } else {
+        alert('Please select both a student and a test.');
+      }
+    });
+  </script>
+</body>
+</html>

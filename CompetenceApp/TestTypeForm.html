@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 16px;
+      box-sizing: border-box;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background-color: #f4f4f4;
+    }
+  </style>
+</head>
+<body>
+  <h3>Manage Test Types</h3>
+  <form id="testTypeForm">
+    <label for="catalogueSelect">Select Catalogue:</label>
+    <select id="catalogueSelect" required>
+      <option value="">-- Select a Catalogue --</option>
+    </select>
+
+    <label for="testType">Test Type:</label>
+    <input type="text" id="testType" name="testType" required>
+
+    <label for="maxScore">Max Score:</label>
+    <input type="number" id="maxScore" name="maxScore" required>
+
+
+    <label for="seuil1">seuil1:</label>
+    <input type="number" id="seuil1" name="seuil1" required>
+
+
+    <label for="seuil2">seuil2:</label>
+    <input type="number" id="seuil2" name="seuil2" required>
+
+    <button type="submit">Add Test Type</button>
+  </form>
+
+  <h3>Existing Test Types</h3>
+  <div id="testTypeList"></div>
+
+  <script>
+    // Load catalogues for the dropdown
+    google.script.run.withSuccessHandler(renderCatalogues).getCatalogues();
+
+    function renderCatalogues(catalogues) {
+      const catalogueSelect = document.getElementById('catalogueSelect');
+      catalogues.forEach(catalogue => {
+        const option = document.createElement('option');
+        option.value = catalogue.catalogueID;
+        option.textContent = `${catalogue.catalogueID} - ${catalogue.catalogueName}`;
+        catalogueSelect.appendChild(option);
+      });
+    }
+
+    // Load existing test types when the sidebar opens
+    google.script.run.withSuccessHandler(renderTestTypes).getTestTypes();
+
+    function renderTestTypes(testTypes) {
+      const listDiv = document.getElementById('testTypeList');
+      if (!testTypes || testTypes.length === 0) {
+        listDiv.innerHTML = '<p>No test types available.</p>';
+        return;
+      }
+
+      let tableHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Type ID</th>
+              <th>Catalogue ID</th>
+              <th>Description</th>
+              <th>Max Score</th>
+              <th>seuil1</th>
+              <th>seuil2</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${testTypes.map(type => `
+              <tr>
+                <td>${type.testTypeID}</td>
+                <td>${type.catalogueID}</td>
+                <td>${type.description}</td>
+                <td>${type.maxScore}</td>
+                <td>${type.seuil1}</td>
+                <td>${type.seuil2}</td>
+                <td>
+                  <button onclick="deleteTestType('${type.testTypeID}')">Delete</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      listDiv.innerHTML = tableHTML;
+    }
+ 
+  // Add a new test type
+  document.getElementById('testTypeForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const testType = document.getElementById('testType').value;
+    const catalogueID = document.getElementById('catalogueSelect').value;
+    const maxScore = parseInt(document.getElementById('maxScore').value, 10);
+    const seuil1 = parseInt(document.getElementById('seuil1').value, 10);
+    const seuil2 = parseInt(document.getElementById('seuil2').value, 10);
+
+    if (!catalogueID || !testType || isNaN(maxScore)|| isNaN(seuil1)|| isNaN(seuil2)) {
+      alert("Please fill out all fields correctly.");
+      return;
+    }
+
+    const testData = {
+      catalogueID: catalogueID,
+      testType: testType,
+      maxScore: maxScore,
+      seuil1: seuil1,
+      seuil2: seuil2,
+    };
+
+    // Log the data for debugging
+    console.log("Submitting data:", testData);
+
+    google.script.run
+      .withSuccessHandler(() => {
+        alert("Test type added successfully!");
+        google.script.run.withSuccessHandler(renderTestTypes).getTestTypes();
+      })
+      .addTestType(testData);
+  });
+
+
+    // Delete a test type
+    function deleteTestType(typeID) {
+      if (confirm(`Are you sure you want to delete Type ID "${typeID}"?`)) {
+        google.script.run
+          .withSuccessHandler(() => {
+            alert('Test type deleted successfully!');
+            google.script.run.withSuccessHandler(renderTestTypes).getTestTypes();
+          })
+          .removeTestType(typeID);
+      }
+    }
+  </script>
+</body>
+</html>
