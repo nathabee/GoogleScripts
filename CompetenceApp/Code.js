@@ -1,10 +1,12 @@
-/**
- * Retrieve the hardcoded Sheet ID.
- * @return {string} Sheet ID
- */
-function getSheetId() {
-  return "1HnFvjPYs59KjS8P0EC7Obos4_OEJWvjyzjRV-yThh08"; // Replace with your actual Sheet ID
-}
+
+// Global variable to store the Sheet ID
+let globalSheetId = null;
+
+
+/***************************************
+ * START POINT
+ * ************************************* */
+
 function doGet(e) {
   let page = e.parameter.mode || "Home";
   let html = HtmlService.createTemplateFromFile(page).evaluate();
@@ -16,6 +18,106 @@ function doGet(e) {
   return htmlOutput;
 }
 
+/***************************************
+ * SHEET MANAGEMENT
+ * 
+ * Info : PropertiesService provides three types of storage on the server side:
+
+Script Properties:
+
+Shared across all users of the script.
+Best for global data or settings that all users can access.
+Example: PropertiesService.getScriptProperties()
+User Properties:
+
+Specific to the user running the script.
+Best for storing user-specific settings or preferences.
+Example: PropertiesService.getUserProperties()
+Document Properties:
+
+Tied to a specific Google Document, Spreadsheet, or Form.
+Best for data specific to the document that runs the script.
+Example: PropertiesService.getDocumentProperties()
+ * ************************************* */
+
+// Use UserProperties to persist the Sheet ID for each user
+const SHEET_ID_KEY = 'userSheetId';
+
+/**
+ * Retrieve or set the user-specific Sheet ID.
+ * If the property is undefined, initialize it with the hardcoded value.
+ * @return {string} Sheet ID
+ */
+function getSheetId() {
+  const userProperties = PropertiesService.getUserProperties();
+  let sheetId = userProperties.getProperty(SHEET_ID_KEY);
+  
+  if (!sheetId) {
+    sheetId = "1HnFvjPYs59KjS8P0EC7Obos4_OEJWvjyzjRV-yThh08"; // Default value
+    userProperties.setProperty(SHEET_ID_KEY, sheetId);
+    Logger.log('User-specific Sheet ID not defined; switched to default: ' + sheetId);
+  }
+  return sheetId;
+}
+
+/**
+ * Update the user-specific Sheet ID in UserProperties.
+ * @param {string} newSheetId - The new Sheet ID to be set.
+ */
+function setSheetId(newSheetId) {
+  PropertiesService.getUserProperties().setProperty(SHEET_ID_KEY, newSheetId);
+  Logger.log('User-specific Sheet ID updated to: ' + newSheetId);
+}
+
+/**
+ * Switch to another sheet by updating the user-specific stored Sheet ID.
+ * @param {string} newSheetId - The new Sheet ID to switch to.
+ * @return {string} Confirmation message
+ */
+function switchToAnotherSheet(newSheetId) {
+  setSheetId(newSheetId); // Update the user-specific Sheet ID
+  Logger.log('Switched to new user-specific Sheet ID: ' + newSheetId);
+  return `Switched to user-specific Sheet ID: ${newSheetId}`;
+}
+
+/**
+ * Retrieve information about the active sheet and spreadsheet.
+ * @return {Object} Spreadsheet and sheet information (spreadsheetName, sheetId, sheetName, contentPreview)
+ */
+function getActiveSheetInfo() {
+  const sheetId = getSheetId(); // Retrieve the user-specific Sheet ID
+  Logger.log(`Retrieving info for user-specific Sheet ID: ${sheetId}`);
+  
+  try {
+    const spreadsheet = SpreadsheetApp.openById(sheetId);
+    const sheet = spreadsheet.getActiveSheet();
+    const spreadsheetName = spreadsheet.getName();
+    const sheetName = sheet.getName();
+    const data = sheet.getRange(1, 1, Math.min(sheet.getLastRow(), 5), Math.min(sheet.getLastColumn(), 5)).getValues();
+    const contentPreview = data.map(row => row.join('\t')).join('\n');
+    return { spreadsheetName, sheetId, sheetName, contentPreview };
+  } catch (error) {
+    Logger.log('Error retrieving active sheet info: ' + error.message);
+    return null;
+  }
+}
+
+
+function resetToDefaultSheetId() {
+  PropertiesService.getUserProperties().deleteProperty(SHEET_ID_KEY);
+  Logger.log('User-specific Sheet ID reset to default.');
+}
+
+function listAllUserSheetIds() {
+  const userProperties = PropertiesService.getUserProperties();
+  Logger.log('All User Properties: ' + JSON.stringify(userProperties.getProperties()));
+}
+
+
+
+/***************************************
+ * NAVBAR FOOTER AND MULTIPAGE
+ * ************************************* */
  
 //Create Navigation Bar
 function getNavbar(activePage) {
@@ -84,6 +186,10 @@ function getConfigData() {
 }
  
 
+
+/***************************************
+ * COMPETENCE APP 
+ * ************************************* */
 
 // **************************************************************************************
  /* SAME CODE THAN Competence AddOn */

@@ -2,7 +2,6 @@
 <html lang="en">
 
 <head>
-
   <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,34 +9,81 @@
   <meta name="author" content="Your Name">
   <title>Home</title>
 
-
   <?!= include('css'); ?>
 </head>
 
 <body>
   {{NAVBAR}}
   <div class="container">
-
-
     <main class="container my-4">
       <div class="row">
         <div class="col-md-12 text-center">
-          <h2>About This System</h2>
-          <p>
-            This application allows you to manage student data, view test results, and generate detailed PDF reports.
-            Use the navigation buttons above to explore.
-          </p>
-          <img src="https://via.placeholder.com/800x400" alt="System Overview" class="img-fluid rounded my-4">
+          <h2>Spreadsheet Information</h2>
+          <div id="sheetInfo">
+            <!-- Dynamic content will be populated by JavaScript -->
+            <p>Loading sheet information...</p>
+          </div>
+          <div id="sheetSelection">
+            <h3>Switch Sheet</h3>
+            <p>
+              Select a different Sheet ID or enter a new one to switch.
+            </p>
+            <input type="text" id="newSheetId" placeholder="Enter Sheet ID" class="form-control my-2">
+            <button class="btn btn-primary" onclick="selectSheet()">Switch to Selected Sheet</button>
+          </div>
         </div>
       </div>
     </main>
-
   </div>
   <!-- Dynamically include footer -->
   <?!= include('Footer') ?>
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // Load active sheet and spreadsheet information
+    function loadSheetInfo() {
+      google.script.run.withSuccessHandler(function (data) {
+        const sheetInfoDiv = document.getElementById('sheetInfo');
+
+        if (data && data.spreadsheetName && data.sheetId && data.sheetName && data.contentPreview) {
+          // Display spreadsheet and active sheet information
+          sheetInfoDiv.innerHTML = `
+            <p><strong>Spreadsheet Name:</strong> ${data.spreadsheetName}</p>
+            <p><strong>Sheet ID:</strong> ${data.sheetId}</p>
+            <p><strong>Sheet Name:</strong> ${data.sheetName}</p>
+            <p><strong>Content Preview:</strong></p>
+            <pre>${data.contentPreview}</pre>
+          `;
+        } else {
+          // No active sheet information
+          sheetInfoDiv.innerHTML = `<p>No active sheet or spreadsheet information found.</p>`;
+        }
+      }).getActiveSheetInfo();
+    }
+
+    // Call server function to switch sheet
+// Call server function to switch sheet and refresh
+function selectSheet() {
+  const newSheetId = document.getElementById('newSheetId').value;
+  if (!newSheetId) {
+    alert('Please enter a Sheet ID.');
+    return;
+  }
+  
+  // Call the server to switch the sheet
+  google.script.run.withSuccessHandler(function () {
+    alert('Switched to the new sheet. Refreshing information...');
+    // After switching, refresh the sheet information
+    loadSheetInfo();
+  }).switchToAnotherSheet(newSheetId);
+}
+
+
+    // Load sheet info on page load
+    document.addEventListener('DOMContentLoaded', loadSheetInfo);
+  </script>
 </body>
 
 </html>
