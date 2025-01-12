@@ -53,43 +53,85 @@
       <li><strong>Version Control:</strong> GitHub</li>
     </ul>
   </section>
+
 <section class="bg-light py-5">
   <div class="container">
     <h2>Project Demo</h2>
-    <p>Explore the functionality of the Competence Management System through the following features:</p>
-    
-    <div class="mb-4">
+    <p>
+      The Competence Management System is designed to streamline student test management, report creation, 
+      and data storage. Below are some of the core features, demonstrated with screenshots.
+    </p>
+
+    <div class="mb-4 pb-5 border-bottom">
       <h3>Configuration Menu</h3>
       <p>
         The web application is a multi-page system, with the <strong>Configuration Menu</strong> allowing users to 
-        select the spreadsheet that will be used to store data, including student information, teacher preferences, 
-        and test results. By default, a spreadsheet containing dummy data is presented. Users can also view the 
-        history of previously selected spreadsheets. All app-related information is stored in the <strong>AppData</strong>, 
-        which is managed either by the deployment owner or the executing user, depending on deployment settings.
+        select the spreadsheet used to store data, including student information, teacher preferences, and test results. 
+        By default, a spreadsheet containing dummy data is presented. Users can also view the history of previously selected spreadsheets. 
+        All app-related information is stored in <strong>AppData</strong>, which is managed either by the deployment owner 
+        or the executing user, depending on deployment settings.
       </p>
-      <img src="https://raw.githubusercontent.com/nathabee/GoogleScripts/main/documentation/screenshot/CompetenceApp/screenshot1.png" 
-     alt="Competence App Screenshot" class="img-fluid my-3"  >
-    </div>
-    
-    <div class="mb-4">
-      <h3>Test Result Form</h3>
-      <p>
-        This form allows users to input the results of student tests directly into the system. The data is dynamically 
-        stored in the selected spreadsheet, ensuring real-time updates and ease of management.
-      </p>
-      <img src="https://raw.githubusercontent.com/nathabee/GoogleScripts/main/documentation/screenshot/CompetenceApp/screenshot2.png" 
-       class="img-fluid my-3" alt="Screenshot of the form management interface">
+      <div class="card my-4 shadow">
+        <div class="card-body text-center">
+          <img src="https://raw.githubusercontent.com/nathabee/GoogleScripts/main/documentation/screenshot/CompetenceApp/screenshot1.png" 
+               class="img-fluid border rounded" 
+               style="max-width: 100%; max-height: 400px; object-fit: contain;" 
+               alt="Configuration Menu Screenshot">
+          <p class="card-text text-muted mt-2">
+            Configuration Menu: Select and manage the active spreadsheet.
+          </p>
+        </div>
+      </div>
     </div>
 
-    <div class="mb-4">
+    <div class="mb-4 pb-5 border-bottom">
+      <h3>Test Result Form</h3>
+      <p>
+        This form allows users to input the results of student tests directly into the system. 
+        The data is dynamically stored in the selected spreadsheet, ensuring real-time updates and ease of management.
+      </p>
+      <div class="card my-4 shadow">
+        <div class="card-body text-center">
+          <img src="https://raw.githubusercontent.com/nathabee/GoogleScripts/main/documentation/screenshot/CompetenceApp/screenshot2.png" 
+               class="img-fluid border rounded" 
+               style="max-width: 100%; max-height: 400px; object-fit: contain;" 
+               alt="Test Result Form Screenshot">
+          <p class="card-text text-muted mt-2">
+            Test Result Form: Input and manage student test results.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-4 pb-5 border-bottom">
       <h3>Report Creation</h3>
       <p>
         Using the <strong>Make Report Form</strong>, users can select a report reference and generate a PDF report. 
-        These reports are stored on the server and include detailed visualizations such as a spider graph to showcase 
-        test results. Users can view the list of generated reports, select a specific one, and email it directly to the intended recipient.
+        These reports are stored on the server and include detailed visualizations such as a spider graph to showcase test results. 
+        Users can view the list of generated reports, select a specific one, and email it directly to the intended recipient.
       </p>
-      <img src="https://raw.githubusercontent.com/nathabee/GoogleScripts/main/documentation/screenshot/CompetenceApp/screenshot3.png" class="img-fluid my-3" alt="Screenshot of the report generation page">
-      <img src="https://raw.githubusercontent.com/nathabee/GoogleScripts/main/documentation/screenshot/CompetenceApp/screenshot4.png" class="img-fluid my-3" alt="Screenshot of the report management interface">
+      <div class="card my-4 shadow">
+        <div class="card-body text-center">
+          <img src="https://raw.githubusercontent.com/nathabee/GoogleScripts/main/documentation/screenshot/CompetenceApp/screenshot3.png" 
+               class="img-fluid border rounded" 
+               style="max-width: 100%; max-height: 400px; object-fit: contain;" 
+               alt="Report Generation Page">
+          <p class="card-text text-muted mt-2">
+            Report Creation: Generate and view detailed PDF reports.
+          </p>
+        </div>
+      </div>
+      <div class="card my-4 shadow">
+        <div class="card-body text-center">
+          <img src="https://raw.githubusercontent.com/nathabee/GoogleScripts/main/documentation/screenshot/CompetenceApp/screenshot4.png" 
+               class="img-fluid border rounded" 
+               style="max-width: 100%; max-height: 400px; object-fit: contain;" 
+               alt="Report Management Interface">
+          <p class="card-text text-muted mt-2">
+            Report Management: View and email generated reports.
+          </p>
+        </div>
+      </div>
     </div>
 
     <div class="mb-4">
@@ -98,7 +140,17 @@
         If new test types need to be added to the system, this can be done through the <strong>Test Type Form</strong>. 
         This ensures that the system remains flexible and adaptable to evolving requirements.
       </p>
-      <img src="https://raw.githubusercontent.com/nathabee/GoogleScripts/main/documentation/screenshot/CompetenceApp/screenshot5.png" class="img-fluid my-3" alt="Screenshot of the test type management interface">
+      <div class="card my-4 shadow">
+        <div class="card-body text-center">
+          <img src="https://raw.githubusercontent.com/nathabee/GoogleScripts/main/documentation/screenshot/CompetenceApp/screenshot5.png" 
+               class="img-fluid border rounded" 
+               style="max-width: 100%; max-height: 400px; object-fit: contain;" 
+               alt="Test Type Management Interface">
+          <p class="card-text text-muted mt-2">
+            Test Type Management: Add or modify test types for greater flexibility.
+          </p>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -106,8 +158,8 @@
 
   <section class="text-center py-5">
     <h2>Explore More</h2>
-    <a href="https://github.com/yourusername/CompetenceApp" class="btn btn-primary m-2">View on GitHub</a>
-    <a href="mailto:your.email@example.com" class="btn btn-secondary m-2">Contact Me</a>
+    <a href="https://github.com/nathabee/GoogleScripts" class="btn btn-primary m-2">View on GitHub</a>
+    <a href="mailto:nathabee123@gmail.com" class="btn btn-secondary m-2">Contact Me</a>
   </section>
  
 

@@ -19,7 +19,7 @@ This repository contains Google Apps Script projects.
 - **Example Data**:
   - Example data is provided in `example-sheets/CompetenceApp.xlsx`.
 - **Competence Management System**:
-[Access the live app here](https://script.google.com/macros/s/AKfycbzPyfBTYQbQVexifJBIj07IlmrUXo6vYUer2J4yto5FDw0iPJDAE2Qw5OdtkvStcyV3zg/exec)
+[Access the live app here](https://script.google.com/macros/s/AKfycbzYhfgXa1DjaEg7nFyw8e6vXyEBdDwqKJSM5rhjD0eY6nbFHkJCFDm3AK1rz2_CusH8QQ/exec)
 
 
 ---
