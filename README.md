@@ -18,6 +18,9 @@ This repository contains Google Apps Script projects.
   - `report.html`: Template for PDF report generation.
 - **Example Data**:
   - Example data is provided in `example-sheets/CompetenceApp.xlsx`.
+- **Competence Management System**:
+[Access the live app here](https://script.google.com/macros/s/AKfycbzPyfBTYQbQVexifJBIj07IlmrUXo6vYUer2J4yto5FDw0iPJDAE2Qw5OdtkvStcyV3zg/exec)
+
 
 ---
 

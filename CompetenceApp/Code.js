@@ -1,12 +1,14 @@
-
-// Global variable to store the Sheet ID
-let globalSheetId = null;
+/***************************************
+ * CONSTANTS
+ * *************************************/
+const DEFAULT_SHEET_ID = "1HnFvjPYs59KjS8P0EC7Obos4_OEJWvjyzjRV-yThh08"; // Default Sheet ID
+const COMPETENCE_APP_FOLDER_NAME = "CompetenceAppData"; // Folder name for storing app data
+const SHEET_ID_FILE_NAME = "sheetId.json"; // File name for storing the Sheet ID
 
 
 /***************************************
  * START POINT
- * ************************************* */
-
+ * *************************************/
 function doGet(e) {
   let page = e.parameter.mode || "Home";
   let html = HtmlService.createTemplateFromFile(page).evaluate();
@@ -14,104 +16,224 @@ function doGet(e) {
   htmlOutput.addMetaTag('viewport', 'width=device-width, initial-scale=1');
 
   //Replace {{NAVBAR}} with the Navbar content
-  htmlOutput.setContent(htmlOutput.getContent().replace("{{NAVBAR}}",getNavbar(page)));
+  htmlOutput.setContent(htmlOutput.getContent().replace("{{NAVBAR}}", getNavbar(page)));
   return htmlOutput;
 }
 
 /***************************************
  * SHEET MANAGEMENT
- * 
- * Info : PropertiesService provides three types of storage on the server side:
-
-Script Properties:
-
-Shared across all users of the script.
-Best for global data or settings that all users can access.
-Example: PropertiesService.getScriptProperties()
-User Properties:
-
-Specific to the user running the script.
-Best for storing user-specific settings or preferences.
-Example: PropertiesService.getUserProperties()
-Document Properties:
-
-Tied to a specific Google Document, Spreadsheet, or Form.
-Best for data specific to the document that runs the script.
-Example: PropertiesService.getDocumentProperties()
- * ************************************* */
-
-// Use UserProperties to persist the Sheet ID for each user
-const SHEET_ID_KEY = 'userSheetId';
+ * *************************************/
 
 /**
- * Retrieve or set the user-specific Sheet ID.
- * If the property is undefined, initialize it with the hardcoded value.
- * @return {string} Sheet ID
+ * Get or create a folder named 'CompetenceAppData' in the user's Google Drive.
+ * Ensures the folder is unique to this app.
+ * @return {GoogleAppsScript.Drive.Folder} The CompetenceAppData folder for the user.
+ */
+function getCompetenceAppDataFolder() {
+  const folders = DriveApp.getFoldersByName(COMPETENCE_APP_FOLDER_NAME);
+
+  if (folders.hasNext()) {
+    return folders.next(); // Return existing folder if it exists
+  } else {
+    return DriveApp.createFolder(COMPETENCE_APP_FOLDER_NAME); // Create and return the folder if it doesn't exist
+  }
+}
+ 
+/**
+ * Store a user-specific Sheet ID in the CompetenceAppData folder with history management.
+ * @param {string} sheetId - The Sheet ID to store.
+ */
+function setSheetId(sheetId) {
+  const fileName = SHEET_ID_FILE_NAME;
+  const folder = getCompetenceAppDataFolder();
+  const userEmail = Session.getActiveUser().getEmail(); // Get the email of the active user
+
+  const files = folder.getFilesByName(fileName);
+  let data = {};
+
+  // Read existing data if the file exists
+  if (files.hasNext()) {
+    const file = files.next();
+    const content = JSON.parse(file.getBlob().getDataAsString());
+    data = content || {};
+  }
+
+  // Initialize user data if it doesn't exist
+  if (!data[userEmail]) {
+    data[userEmail] = {
+      activeSheetId: sheetId,
+      history: []
+    };
+  }
+
+  // Update user data
+  const userData = data[userEmail];
+  userData.activeSheetId = sheetId; // Set the active Sheet ID
+
+  // Add the Sheet ID to the history if it's not already there
+  if (!userData.history.includes(sheetId)) {
+    userData.history.push(sheetId);
+  }
+
+  // Write the updated data back to the file
+  if (files.hasNext()) {
+    const file = files.next();
+    file.setContent(JSON.stringify(data));
+  } else {
+    folder.createFile(fileName, JSON.stringify(data));
+  }
+
+  Logger.log(`Stored Sheet ID for user ${userEmail}: ${sheetId}`);
+}
+
+
+/**
+ * Retrieve the active Sheet ID for the current user.
+ * If none is set, use the default Sheet ID.
+ * @return {string} The active Sheet ID or the default value.
  */
 function getSheetId() {
-  const userProperties = PropertiesService.getUserProperties();
-  let sheetId = userProperties.getProperty(SHEET_ID_KEY);
-  
-  if (!sheetId) {
-    sheetId = "1HnFvjPYs59KjS8P0EC7Obos4_OEJWvjyzjRV-yThh08"; // Default value
-    userProperties.setProperty(SHEET_ID_KEY, sheetId);
-    Logger.log('User-specific Sheet ID not defined; switched to default: ' + sheetId);
+  const fileName = SHEET_ID_FILE_NAME;
+  const folder = getCompetenceAppDataFolder();
+  const userEmail = Session.getActiveUser().getEmail(); // Get the email of the active user
+
+  const files = folder.getFilesByName(fileName);
+
+  if (files.hasNext()) {
+    const file = files.next();
+    const content = JSON.parse(file.getBlob().getDataAsString());
+
+    // Return the active Sheet ID if it exists
+    if (content[userEmail] && content[userEmail].activeSheetId) {
+      return content[userEmail].activeSheetId;
+    }
   }
-  return sheetId;
+
+  // Default Sheet ID
+  return DEFAULT_SHEET_ID;
 }
 
-/**
- * Update the user-specific Sheet ID in UserProperties.
- * @param {string} newSheetId - The new Sheet ID to be set.
- */
-function setSheetId(newSheetId) {
-  PropertiesService.getUserProperties().setProperty(SHEET_ID_KEY, newSheetId);
-  Logger.log('User-specific Sheet ID updated to: ' + newSheetId);
-}
 
 /**
- * Switch to another sheet by updating the user-specific stored Sheet ID.
+ * Switch to another sheet by updating the stored Sheet ID.
  * @param {string} newSheetId - The new Sheet ID to switch to.
- * @return {string} Confirmation message
+ * @return {string} Confirmation message.
  */
 function switchToAnotherSheet(newSheetId) {
-  setSheetId(newSheetId); // Update the user-specific Sheet ID
-  Logger.log('Switched to new user-specific Sheet ID: ' + newSheetId);
-  return `Switched to user-specific Sheet ID: ${newSheetId}`;
+  setSheetId(newSheetId);
+  Logger.log("Switched to new Sheet ID: " + newSheetId);
+  Logger.log("Current stored Sheet ID: " + getSheetId());
+  return `Switched to Sheet ID: ${newSheetId}`;
 }
 
 /**
  * Retrieve information about the active sheet and spreadsheet.
- * @return {Object} Spreadsheet and sheet information (spreadsheetName, sheetId, sheetName, contentPreview)
+ * @return {Object} Spreadsheet and sheet information.
  */
+
+/*
 function getActiveSheetInfo() {
-  const sheetId = getSheetId(); // Retrieve the user-specific Sheet ID
-  Logger.log(`Retrieving info for user-specific Sheet ID: ${sheetId}`);
-  
+  const sheetId = getSheetId();
+  Logger.log(`Retrieving info for Sheet ID: ${sheetId}`);
+
   try {
     const spreadsheet = SpreadsheetApp.openById(sheetId);
     const sheet = spreadsheet.getActiveSheet();
     const spreadsheetName = spreadsheet.getName();
     const sheetName = sheet.getName();
     const data = sheet.getRange(1, 1, Math.min(sheet.getLastRow(), 5), Math.min(sheet.getLastColumn(), 5)).getValues();
-    const contentPreview = data.map(row => row.join('\t')).join('\n');
+    const contentPreview = data.map(row => row.join("\t")).join("\n");
     return { spreadsheetName, sheetId, sheetName, contentPreview };
   } catch (error) {
-    Logger.log('Error retrieving active sheet info: ' + error.message);
+    Logger.log("Error retrieving active sheet info: " + error.message);
+    return {
+      spreadsheetName: "N/A",
+      sheetId,
+      sheetName: "N/A",
+      contentPreview: "Error accessing the spreadsheet. Check if the Sheet ID is valid and shared appropriately."
+    };
+  }
+}
+
+ */
+
+function getActiveSheetInfo() {
+  const sheetId = getSheetId(); // Retrieve the stored Sheet ID
+  try {
+    const spreadsheet = SpreadsheetApp.openById(sheetId);
+    const sheet = spreadsheet.getActiveSheet();
+    const spreadsheetName = spreadsheet.getName();
+    const sheetName = sheet.getName();
+    const data = sheet.getRange(1, 1, Math.min(sheet.getLastRow(), 5), Math.min(sheet.getLastColumn(), 5)).getValues();
+    return {
+      spreadsheetName,
+      sheetId,
+      sheetName,
+      contentPreview: data
+    };
+  } catch (error) {
+    Logger.log("Error retrieving active sheet info: " + error.message);
     return null;
   }
 }
 
 
+/**
+ * Retrieve the list of all Sheet IDs the current user has used.
+ * @return {Array<string>} List of Sheet IDs.
+ */
+function getUserSheetHistory() {
+  const fileName = SHEET_ID_FILE_NAME;
+  const folder = getCompetenceAppDataFolder();
+  const userEmail = Session.getActiveUser().getEmail(); // Get the email of the active user
+
+  const files = folder.getFilesByName(fileName);
+
+  if (files.hasNext()) {
+    const file = files.next();
+    const content = JSON.parse(file.getBlob().getDataAsString());
+
+    // Return the user's Sheet history if it exists
+    if (content[userEmail] && content[userEmail].history) {
+      return content[userEmail].history;
+    }
+  }
+
+  // Return an empty list if no history exists
+  return [];
+}
+ 
+
+/**
+ * Reset the active Sheet ID for the current user to the default value.
+ */
 function resetToDefaultSheetId() {
-  PropertiesService.getUserProperties().deleteProperty(SHEET_ID_KEY);
-  Logger.log('User-specific Sheet ID reset to default.');
+  const fileName = SHEET_ID_FILE_NAME;
+  const folder = getCompetenceAppDataFolder();
+  const userEmail = Session.getActiveUser().getEmail(); // Get the email of the active user
+
+  const files = folder.getFilesByName(fileName);
+  let data = {};
+
+  if (files.hasNext()) {
+    const file = files.next();
+    const content = JSON.parse(file.getBlob().getDataAsString());
+    data = content || {};
+
+    // Reset the active Sheet ID to the default value
+    if (data[userEmail]) {
+      data[userEmail].activeSheetId = DEFAULT_SHEET_ID;
+    }
+
+    // Write the updated data back to the file
+    file.setContent(JSON.stringify(data));
+    Logger.log(`Reset active Sheet ID for user ${userEmail} to default.`);
+  } else {
+    Logger.log('No data file found. Nothing to reset.');
+  }
 }
 
-function listAllUserSheetIds() {
-  const userProperties = PropertiesService.getUserProperties();
-  Logger.log('All User Properties: ' + JSON.stringify(userProperties.getProperties()));
-}
+ 
 
 
 
@@ -122,6 +244,7 @@ function listAllUserSheetIds() {
 //Create Navigation Bar
 function getNavbar(activePage) {
   var scriptURLHome = getScriptURL();
+  var scriptURLConfig = getScriptURL("mode=Config");
   var scriptURLForm = getScriptURL("mode=Form");
   var scriptURLReport = getScriptURL("mode=Report");  
   var scriptURLMakeReportForm = getScriptURL("mode=MakeReportForm");  
@@ -138,6 +261,7 @@ function getNavbar(activePage) {
         <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
           <div class="navbar-nav">
             <a class="nav-item nav-link ${activePage === 'Home' ? 'active' : ''}" href="${scriptURLHome}" target="_top">Home</a>
+            <a class="nav-item nav-link ${activePage === 'Config' ? 'active' : ''}" href="${scriptURLConfig}" target="_top">Config</a>
             <a class="nav-item nav-link ${activePage === 'Form' ? 'active' : ''}" href="${scriptURLForm}" target="_top">Form</a>
             <a class="nav-item nav-link ${activePage === 'Report' ? 'active' : ''}" href="${scriptURLReport}" target="_top">Report</a> 
             <a class="nav-item nav-link ${activePage === 'MakeReportForm' ? 'active' : ''}" href="${scriptURLMakeReportForm}" target="_top">Make Report Form</a> 
