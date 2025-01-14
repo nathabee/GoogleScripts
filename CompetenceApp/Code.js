@@ -4,6 +4,7 @@
 const DEFAULT_SHEET_ID = "1HnFvjPYs59KjS8P0EC7Obos4_OEJWvjyzjRV-yThh08"; // Default Sheet ID
 const COMPETENCE_APP_FOLDER_NAME = "CompetenceAppData"; // Folder name for storing app data
 const SHEET_ID_FILE_NAME = "sheetId.json"; // File name for storing the Sheet ID
+const DEFAULT_TEMPLATE_REPORT_ID = "1LshrcbX0bN5V56O2VvnO9h9-rDI0NLqO12DZY8Bo8Ns"; // Default Sheet ID
 
 
 /***************************************
@@ -246,8 +247,8 @@ function getNavbar(activePage) {
   var scriptURLHome = getScriptURL();
   var scriptURLConfig = getScriptURL("mode=Config");
   var scriptURLForm = getScriptURL("mode=Form");
-  var scriptURLReport = getScriptURL("mode=Report");  
-  var scriptURLMakeReportForm = getScriptURL("mode=MakeReportForm");  
+  var scriptURLReportForm = getScriptURL("mode=ReportForm");  // TEST BECAUSE MakeReportForm is getting bugged
+  var scriptURLReportHistory = getScriptURL("mode=ReportHistory");  
   var scriptURLTestResultForm = getScriptURL("mode=TestResultForm");  
   var scriptURLTestTypeForm = getScriptURL("mode=TestTypeForm");  
 
@@ -263,8 +264,8 @@ function getNavbar(activePage) {
             <a class="nav-item nav-link ${activePage === 'Home' ? 'active' : ''}" href="${scriptURLHome}" target="_top">Home</a>
             <a class="nav-item nav-link ${activePage === 'Config' ? 'active' : ''}" href="${scriptURLConfig}" target="_top">Config</a>
             <a class="nav-item nav-link ${activePage === 'Form' ? 'active' : ''}" href="${scriptURLForm}" target="_top">Form</a>
-            <a class="nav-item nav-link ${activePage === 'Report' ? 'active' : ''}" href="${scriptURLReport}" target="_top">Report</a> 
-            <a class="nav-item nav-link ${activePage === 'MakeReportForm' ? 'active' : ''}" href="${scriptURLMakeReportForm}" target="_top">Make Report Form</a> 
+            <a class="nav-item nav-link ${activePage === 'ReportForm' ? 'active' : ''}" href="${scriptURLReportForm}" target="_top">ReportForm</a> 
+            <a class="nav-item nav-link ${activePage === 'ReportHistory' ? 'active' : ''}" href="${scriptURLReportHistory}" target="_top">Report History</a> 
             <a class="nav-item nav-link ${activePage === 'TestResultForm' ? 'active' : ''}" href="${scriptURLTestResultForm}" target="_top">Test Result Form</a> 
             <a class="nav-item nav-link ${activePage === 'TestTypeForm' ? 'active' : ''}" href="${scriptURLTestTypeForm}" target="_top">TestTypeForm</a> 
           </div>
@@ -593,18 +594,18 @@ function getTestResults(testId) {
   Logger.log(`Backend: getTestResults data : ${JSON.stringify(data)}`);
 
   // Filter rows matching testId
-  const filteredTestResults = data.filter(row => row[0] == testId);
+  const filteredTestResults = data.filter(row => row[1] == testId);
   Logger.log(`Backend: filteredTestResults : ${JSON.stringify(filteredTestResults)}`);
 
   // Convert to objects for better readability in the frontend
   const resultsWithLabels = filteredTestResults.map(row => ({ 
-    description: row[1], // Use the description field for chart labels
-    points: row[2],
-    maxPoints: row[3],
+    description: row[2], // Use the description field for chart labels
+    points: row[3],
+    maxPoints: row[4],
     seuil1: row[4],
-    seuil2: row[5],
-    seuil3: row[6],
-    totalSeuil: row[7],
+    seuil2: row[6],
+    seuil3: row[7],
+    totalSeuil: row[8],
   }));
 
   Logger.log(`Backend: Results with labels: ${JSON.stringify(resultsWithLabels)}`);
@@ -619,10 +620,11 @@ function getTestResults(testId) {
  * Generate the PDF Report.
  */
  
-function generatePDF(studentId, testId) {
+
+function generatePDFUrl(studentId, testId) {
   try {
     const sheetId = getSheetId();
-    const spreadsheet = SpreadsheetApp.openById(sheetId); // Explicitly open the spreadsheet
+    const spreadsheet = SpreadsheetApp.openById(sheetId);
     const tmpSheetName = "Tmp";
     let tmpSheet = spreadsheet.getSheetByName(tmpSheetName);
 
@@ -630,7 +632,9 @@ function generatePDF(studentId, testId) {
     if (!tmpSheet) {
       tmpSheet = spreadsheet.insertSheet(tmpSheetName);
     } else {
-      tmpSheet.clear(); // Clear any existing data
+      // Clear sheet and remove old charts
+      tmpSheet.getCharts().forEach(chart => tmpSheet.removeChart(chart));
+      tmpSheet.clear();
     }
 
     const studentSheet = spreadsheet.getSheetByName("Student");
@@ -641,92 +645,157 @@ function generatePDF(studentId, testId) {
     const student = students.find(row => row[0] == studentId);
     if (!student) throw new Error("Student not found.");
     const studentName = `${student[1]} ${student[2]}`;
+    const reportName =  `${studentName} ${testId}`;
     const grade = `${student[3]}`;
 
     // Fetch test results
     const results = testResultsSheet.getRange(2, 1, testResultsSheet.getLastRow() - 1, 8).getValues();
-    const filteredResults = results
-      .filter(row => row[0] == testId)
-      .map(row => ({
-        description: row[1],
-        points: row[2],
-        maxPoints: row[3],
-        seuil1: row[4],
-        seuil2: row[5],
-        seuil3: row[6],
-        totalSeuil: row[7], // Assume `totalSeuil` is the 8th column
-      }));
+    const filteredResults = results.filter(row => row[1] == testId).map(row => ({
+      description: row[2],
+      points: row[3],
+      maxPoints: row[4],
+      seuil1: row[5],
+      seuil2: row[6],
+      seuil3: row[7],
+      totalSeuil: row[8],
+    }));
     if (filteredResults.length === 0) throw new Error("No results found for the test.");
 
-
-    
-    // Prepare data for radar chart
+    // Prepare radar chart data
     const labels = filteredResults.map(r => r.description);
     const values = filteredResults.map(r => r.totalSeuil);
 
-    
-
     // Write radar chart data to Tmp sheet
-    tmpSheet.getRange(1, 1, labels.length, 1).setValues(labels.map(label => [label])); // Labels in column A
-    tmpSheet.getRange(1, 2, values.length, 1).setValues(values.map(value => [value])); // Values in column B
-
-    // Determine the next available row for the chart
-    const lastRow = tmpSheet.getLastRow(); // Get the last occupied row
-    const chartRowPosition = Math.max(lastRow + 2, 5); // Minimum row position is 5
-    const chartColumnPosition = 1; // Fixed column position
-
-
-    Logger.log(`Backend: lastRow : ${lastRow}   ,  chartRowPosition : ${chartRowPosition} ,  chartColumnPosition : ${chartColumnPosition} `);
-    // 8 10 1
-
-    // Validate position values
-    if (chartRowPosition <= 0 || chartColumnPosition <= 0) {
-      throw new Error(`Invalid chart position: row=${chartRowPosition}, column=${chartColumnPosition}`);
-    }
+    tmpSheet.getRange(1, 1, labels.length, 1).setValues(labels.map(label => [label]));
+    tmpSheet.getRange(1, 2, values.length, 1).setValues(values.map(value => [value]));
 
     // Create radar chart
     const chart = tmpSheet.newChart()
       .setChartType(Charts.ChartType.RADAR)
-      .addRange(tmpSheet.getRange(1, 1, labels.length, 2)) // Use labels and values
-      .setPosition(chartRowPosition, chartColumnPosition,0 ,0) // Place the chart dynamically below the data
+      .addRange(tmpSheet.getRange(1, 1, labels.length, 2))
+      .setPosition(5, 1, 0, 0)
       .build();
+    tmpSheet.insertChart(chart);
 
-
-    Logger.log(`Backend: newChart called  `);
-
-    tmpSheet.insertChart(chart); // Insert the chart into the Tmp sheet
     const chartBlob = chart.getBlob().getAs('image/png');
-    const chartBase64 = Utilities.base64Encode(chartBlob.getBytes());
+    const chartImageBase64 = Utilities.base64Encode(chartBlob.getBytes());
 
-    Logger.log(`Backend: insertChart  called  testResults`,testResults);
-    // Prepare data for the template
+    // Prepare data object for the template
     const data = {
       studentName: studentName,
       grade: grade,
       testResults: filteredResults,
     };
 
-    // Prepare the PDF template
-    const template = HtmlService.createTemplateFromFile('pdfReportTemplate');
-    template.data = data;
-    template.chartImage = chartBase64;
-
     // Generate HTML for the PDF
+    const template = HtmlService.createTemplateFromFile('PdfReportTemplate');
+    template.data = data;
+    template.chartImage = chartImageBase64; // Embed radar chart as Base64 image
     const htmlOutput = template.evaluate().getContent();
 
-    // Convert to PDF and save
+    // Convert the HTML content to a PDF
     const pdfBlob = HtmlService.createHtmlOutput(htmlOutput)
       .getBlob()
-      .setName(`Report_${studentName}_${testId}.pdf`)
+      .setName(reportName)
       .getAs('application/pdf');
 
-    const file = DriveApp.createFile(pdfBlob);
-    const fileUrl = file.getDownloadUrl();
+    // Save PDF to Google Drive
 
-    Logger.log(`PDF generated: ${fileUrl}`);
-    return { fileUrl, studentName };
-  } catch (e) {
-    Logger.log(`Error in generatePDF: ${e.message}`);
-    throw new Error(`Failed to generate PDF: ${e.message}`);
+    const file = DriveApp.createFile(pdfBlob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    const fileUrl = `https://drive.google.com/uc?id=${file.getId()}&export=download`;
+    return { fileUrl, reportName: file.getName() };
+  } catch (error) {
+    throw new Error(`Failed to generate PDF: ${error.message}`);
+  }
+}
+
+
+
+function generatePDFWithDocTemplate(data) {
+  const templateId = "YOUR_TEMPLATE_DOC_ID"; // Replace with your Google Docs template ID
+  const folderId = "YOUR_OUTPUT_FOLDER_ID"; // Replace with your Google Drive folder ID
+
+  // Open the template and make a copy
+  const template = DriveApp.getFileById(templateId);
+  const folder = DriveApp.getFolderById(folderId);
+  const documentCopy = template.makeCopy(`Test_Report_${data.studentName}`, folder);
+  const doc = DocumentApp.openById(documentCopy.getId());
+
+  // Replace placeholders in the document
+  const body = doc.getBody();
+  body.replaceText("<<studentName>>", data.studentName || "N/A");
+  body.replaceText("<<grade>>", data.grade || "N/A");
+
+  // Replace the table placeholder
+  let tableHTML = `
+    <table>
+      <tr>
+        <th>Description</th>
+        <th>Points</th>
+        <th>Max Points</th>
+        <th>Seuil 1</th>
+        <th>Seuil 2</th>
+        <th>Seuil 3</th>
+        <th>Total Seuil</th>
+      </tr>
+      ${data.testResults
+        .map(result => `
+          <tr>
+            <td>${result.description}</td>
+            <td>${result.points}</td>
+            <td>${result.maxPoints}</td>
+            <td>${result.seuil1}</td>
+            <td>${result.seuil2}</td>
+            <td>${result.seuil3}</td>
+            <td>${result.totalSeuil}</td>
+          </tr>
+        `)
+        .join("")}
+    </table>
+  `;
+  body.replaceText("<<table>>", tableHTML);
+
+  // Replace the radar chart placeholder
+  const chartBlob = Utilities.base64Decode(data.chartImage);
+  const inlineImage = body.appendImage(Utilities.newBlob(chartBlob, "image/png"));
+  body.replaceText("<<chartImage>>", ""); // Remove placeholder text
+  body.insertParagraph(body.getChildIndex(inlineImage.getParent()), "Radar Chart");
+
+  // Save and close the document
+  doc.saveAndClose();
+
+  // Convert the document to a PDF
+  const pdfBlob = documentCopy.getAs("application/pdf");
+
+  // Save the PDF back to Google Drive
+  const pdfFile = folder.createFile(pdfBlob);
+  Logger.log(`PDF created: ${pdfFile.getUrl()}`);
+
+  // Return the URL of the PDF
+  return pdfFile.getUrl();
+}
+
+
+
+function emailReportToUser(fileUrl) {
+  try {
+    const userEmail = Session.getActiveUser().getEmail(); // Get the user's email
+    const fileId = fileUrl.match(/id=([^&]+)/)[1]; // Extract file ID from the URL
+    const file = DriveApp.getFileById(fileId); // Get the file from Google Drive
+    const fileBlob = file.getBlob(); // Get the file as a Blob
+
+    // Email the report
+    GmailApp.sendEmail(userEmail, 'Your Test Report', 'Please find the attached report.', {
+      attachments: [fileBlob],
+      name: 'Competence Management System',
+    });
+
+    Logger.log(`Email sent to ${userEmail} with file: ${file.getName()}`);
+    return true;
+  } catch (error) {
+    Logger.log(`Error emailing report: ${error.message}`);
+    throw new Error('Failed to email the report: ' + error.message);
   }
 }

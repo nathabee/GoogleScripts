@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Home page of the student test management system">
+  <meta name="author" content="Nathabee">
+  <title>Home</title>
+
+  <?!= include('css'); ?>
+</head>
+
+<body>
+  {{NAVBAR}}
+
+
+
+
+  <main class="container my-4">
+    <div class="row">
+      <div class="col-md-6">
+        <label for="studentSelect" class="form-label">Select a Student:</label>
+        <select id="studentSelect" class="form-select" onchange="onStudentChange()"></select>
+      </div>
+      <div class="col-md-6">
+        <label for="testSelect" class="form-label">Select a Test:</label>
+        <select id="testSelect" class="form-select" onchange="onTestChange()"></select>
+      </div>
+    </div>
+
+    <div id="testDetails" class="mt-4">
+      <!-- Test details will be dynamically populated here -->
+    </div>
+    <div id="statusMessage" class="text-center text-info mt-2" style="display: none;"></div> <!-- Status message -->
+
+ 
+    <div class="text-center mt-4">
+          <!-- Generate PDF button starts as disabled -->
+      <button id="generatePdfBtn" class="btn btn-success" onclick="printPDF()" disabled>Generate PDF</button>
+      <button id="emailReportBtn" class="btn btn-info" onclick="emailReport()" disabled>Email Me</button>
+    </div>
+
+    
+
+  </main>
+  <!-- Dynamically include footer -->
+  <?!= include('Footer') ?>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  // Declare global variables once
+  let selectedStudentId = null;
+  let selectedTestId = null;
+  let generatedFileUrl = null;
+
+  // Display a status message
+  function showStatusMessage(message) {
+    const statusMessage = document.getElementById('statusMessage');
+    statusMessage.textContent = message;
+    statusMessage.style.display = 'block';
+  }
+
+  // Hide the status message
+  function hideStatusMessage() {
+    const statusMessage = document.getElementById('statusMessage');
+    statusMessage.style.display = 'none';
+  }
+
+  // Load students on page load
+  function loadStudents() {
+    const studentSelect = document.getElementById('studentSelect');
+    studentSelect.innerHTML = '<option>Loading students...</option>'; // Indicate loading state
+    google.script.run.withSuccessHandler(renderStudents).getStudents();
+  }
+
+  // Render the list of students in the dropdown
+  function renderStudents(students) {
+    const studentSelect = document.getElementById('studentSelect');
+    studentSelect.innerHTML = '<option value="">Select a student</option>'; // Default option
+
+    if (students.length === 0) {
+      studentSelect.innerHTML = '<option value="">No students available</option>';
+      return;
+    }
+
+    students.forEach(student => {
+      const option = document.createElement('option');
+      option.value = student.studentId;
+      option.textContent = `${student.firstName} ${student.lastName} (${student.grade})`;
+      studentSelect.appendChild(option);
+    });
+  }
+
+  // Handle student selection
+  function onStudentChange() {
+    const studentSelect = document.getElementById('studentSelect');
+    const testSelect = document.getElementById('testSelect');
+    const generatePdfBtn = document.getElementById('generatePdfBtn');
+
+    selectedStudentId = studentSelect.value;
+
+    // Reset tests and results
+    testSelect.innerHTML = '<option>Loading tests...</option>'; // Show loading state
+    clearTestResults();
+    generatePdfBtn.disabled = true; // Disable the button until tests and results are loaded
+
+    if (!selectedStudentId) {
+      testSelect.innerHTML = '<option value="">Select a student first</option>';
+      return;
+    }
+
+    // Fetch tests for the selected student
+    google.script.run
+      .withSuccessHandler(renderTests)
+      .withFailureHandler(() => {
+        testSelect.innerHTML = '<option value="">Failed to load tests</option>';
+      })
+      .getTestsByStudent(selectedStudentId);
+  }
+
+  // Render the list of tests in the dropdown
+  function renderTests(tests) {
+    const testSelect = document.getElementById('testSelect');
+    testSelect.innerHTML = '<option value="">Select a test</option>'; // Default option
+
+    if (!tests || tests.length === 0) {
+      testSelect.innerHTML = '<option value="">No tests available</option>';
+      return;
+    }
+
+    tests.forEach(test => {
+      const option = document.createElement('option');
+      option.value = test.testId;
+      option.textContent = `${test.catalogueName} - ${test.date}`;
+      testSelect.appendChild(option);
+    });
+  }
+
+  // Handle test selection
+  function onTestChange() {
+    const testSelect = document.getElementById('testSelect');
+    const generatePdfBtn = document.getElementById('generatePdfBtn');
+
+    selectedTestId = testSelect.value;
+
+    // Reset results and disable button until results are displayed
+    clearTestResults();
+    generatePdfBtn.disabled = true;
+
+    if (!selectedTestId) return;
+
+    // Show "loading test results" message
+    showStatusMessage('Loading test results...');
+
+    // Fetch test results
+    google.script.run
+      .withSuccessHandler(results => {
+        renderTestDetails(results);
+        generatePdfBtn.disabled = false; // Enable button after results are displayed
+        hideStatusMessage(); // Hide the loading message
+      })
+      .withFailureHandler(() => {
+        alert('Failed to load test results.');
+        hideStatusMessage(); // Hide the loading message in case of failure
+      })
+      .getTestResults(selectedTestId);
+  }
+
+  // Render test details
+  function renderTestDetails(results) {
+    const resultDiv = document.getElementById('testDetails');
+
+    if (results && results.length > 0) {
+      const columnOrder = [
+        "description",
+        "points",
+        "maxPoints",
+        "seuil1",
+        "seuil2",
+        "seuil3",
+        "totalSeuil"
+      ];
+
+      let tableHTML = `
+        <h3>Test Results</h3>
+        <table class="table table-bordered table-striped">
+          <thead>
+            <tr>
+              ${columnOrder.map(header => `<th>${header}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${results.map(row => `
+              <tr>
+                ${columnOrder.map(header => `<td>${row[header] !== undefined ? row[header] : ''}</td>`).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+
+      resultDiv.innerHTML = tableHTML;
+    } else {
+      resultDiv.innerHTML = '<p>No details available for this test.</p>';
+    }
+  }
+
+  // Clear the test dropdown and results section
+  function clearTestsAndResults() {
+    const testSelect = document.getElementById('testSelect');
+    testSelect.innerHTML = '<option value="">Select a test</option>';
+    clearTestResults();
+  }
+
+  // Clear the results section
+  function clearTestResults() {
+    const resultDiv = document.getElementById('testDetails');
+    resultDiv.innerHTML = '';
+  }
+
+  // Print the PDF
+  function printPDF() {
+    if (selectedStudentId && selectedTestId) {
+      // Show "preparing PDF" message
+      showStatusMessage('Preparing PDF...');
+
+      google.script.run
+        .withSuccessHandler(response => {
+          downloadPDF(response);
+          hideStatusMessage(); // Hide the message after the PDF is downloaded
+
+          // Enable "Email Me" button
+          const emailBtn = document.getElementById('emailReportBtn');
+          emailBtn.disabled = false;
+
+          // Store the generated file URL
+          generatedFileUrl = response.fileUrl;
+        })
+        .withFailureHandler(error => {
+          alert(`Error: ${error.message}`);
+          hideStatusMessage(); // Hide the message in case of failure
+        })
+        .generatePDFUrl(selectedStudentId, selectedTestId);
+    } else {
+      alert('Please select both a student and a test first.');
+    }
+  }
+
+  function downloadPDF(response) {
+    if (!response || !response.fileUrl) {
+      alert('No valid file URL returned.');
+      return;
+    }
+
+    const fileUrl = response.fileUrl;
+    const link = document.createElement('a');
+    link.href = fileUrl;
+    link.target = '_blank'; // Open in a new tab
+    link.download = response.reportName || 'Performance_Report.pdf'; // Default name
+
+    document.body.appendChild(link);
+    link.click(); // Must be user-initiated
+    document.body.removeChild(link);
+
+    alert(`PDF successfully downloaded from ${fileUrl}`);
+  }
+
+  function emailReport() {
+    if (!generatedFileUrl) {
+      alert('Please generate the report first.');
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(() => {
+        alert('The report has been emailed successfully!');
+      })
+      .withFailureHandler(error => {
+        alert('Failed to email the report: ' + error.message);
+      })
+      .emailReportToUser(generatedFileUrl);
+  }
+
+  // Load students on page load
+  window.onload = loadStudents;
+</script>
+
+
+</body>
+
+</html>

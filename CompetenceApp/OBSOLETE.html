@@ -39,7 +39,7 @@
       <option value="">-- Select a Test --</option>
     </select>
 
-    <div>
+    <div> 
       <button id="seeReportBtn" class="btn btn-primary">See Report</button>
       <button id="downloadPdfBtn" class="btn btn-secondary" disabled>Download PDF</button>
       <button id="emailReportBtn" class="btn btn-success" disabled>Email Report</button>
@@ -50,7 +50,7 @@
   </form>
 
   <script>
-    let selectedStudentId = null;
+    let selectedStudentId = null; 
 
     // Populate the student dropdown
     google.script.run.withSuccessHandler(renderStudents).getStudents();
@@ -60,7 +60,7 @@
       students.forEach(student => {
         const option = document.createElement('option');
         option.value = student.studentId;
-        option.textContent = `${student.firstName} ${student.lastName} (${student.grade})`;
+        option.textContent = `${student.firstName} ${student.lastName} ${student.grade}`;
         studentSelect.appendChild(option);
       });
     }
@@ -68,7 +68,8 @@
     // Fetch tests for the selected student
     document.getElementById('studentSelect').addEventListener('change', function() {
       const studentId = this.value;
-      selectedStudentId = studentId;
+      selectedStudentId = studentId; 
+
       if (studentId) {
         google.script.run.withSuccessHandler(renderTests).getTestsByStudent(studentId);
       }
@@ -86,10 +87,13 @@
       });
     }
 
+ 
+
     // Handle form submission
     let reportBlobBase64 = null;
 
-    /* document.getElementById('seeReportBtn').addEventListener('click', function () {
+    /*
+     document.getElementById('seeReportBtn').addEventListener('click', function () {
       const testId = document.getElementById('testSelect').value;
 
       if (!selectedStudentId || !testId) {
@@ -103,8 +107,7 @@
           console.log('Response:', response);
 
 
-          reportBlobBase64 = response.blobBase64;
-          const studentName = response.studentName;
+          reportBlobBase64 = response.blobBase64; 
 
           // Enable other buttons
           document.getElementById('downloadPdfBtn').disabled = false;
@@ -142,7 +145,7 @@
           // Enable other buttons
           document.getElementById('downloadPdfBtn').disabled = false;
           document.getElementById('emailReportBtn').disabled = false;
-          
+
           // Set the Base64 PDF data into the iframe
           const iframe = document.getElementById('reportViewer');
           iframe.src = `data:application/pdf;base64,${response.blobBase64}`;
@@ -187,17 +190,7 @@
         })
         .emailReport(reportBlobBase64);
     });
-
-  /*
-    function downloadPDF(response) {
-      const fileUrl = response.fileUrl; // Extract file URL
-      const studentName = response.studentName; // Extract student name
-      
-      // Open the file URL in a new tab for download
-      window.open(fileUrl, '_blank');
-
-      alert(`PDF for ${studentName} successfully generated and ready for download!`);
-    } */
+ 
 
   </script>
 </body>

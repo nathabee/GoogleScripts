@@ -103,36 +103,54 @@
       </div>
     </div>
 
-    <div class="mb-4 pb-5 border-bottom">
-      <h3>Report Creation</h3>
-      <p>
-        Using the <strong>Make Report Form</strong>, users can select a report reference and generate a PDF report. 
-        These reports are stored on the server and include detailed visualizations such as a spider graph to showcase test results. 
-        Users can view the list of generated reports, select a specific one, and email it directly to the intended recipient.
+<div class="mb-4 pb-5 border-bottom">
+  <h3>Report Creation</h3>
+  <p>
+    Using the <strong>Make Report Form</strong>, users can select a report reference and generate a PDF report. 
+    These reports are stored on the server and include detailed visualizations such as a spider graph to showcase test results. 
+    Users can view the list of generated reports, select a specific one, and email it directly to the intended recipient.
+  </p>
+
+  <div class="card my-4 shadow">
+    <div class="card-body text-center">
+      <img src="https://raw.githubusercontent.com/nathabee/GoogleScripts/main/documentation/screenshot/CompetenceApp/screenshot3.png" 
+           class="img-fluid border rounded" 
+           style="max-width: 100%; max-height: 400px; object-fit: contain;" 
+           alt="Report Generation Page">
+      <p class="card-text text-muted mt-2">
+        Report Creation: Generate and view detailed PDF reports.
       </p>
-      <div class="card my-4 shadow">
-        <div class="card-body text-center">
-          <img src="https://raw.githubusercontent.com/nathabee/GoogleScripts/main/documentation/screenshot/CompetenceApp/screenshot3.png" 
-               class="img-fluid border rounded" 
-               style="max-width: 100%; max-height: 400px; object-fit: contain;" 
-               alt="Report Generation Page">
-          <p class="card-text text-muted mt-2">
-            Report Creation: Generate and view detailed PDF reports.
-          </p>
-        </div>
-      </div>
-      <div class="card my-4 shadow">
-        <div class="card-body text-center">
-          <img src="https://raw.githubusercontent.com/nathabee/GoogleScripts/main/documentation/screenshot/CompetenceApp/screenshot4.png" 
-               class="img-fluid border rounded" 
-               style="max-width: 100%; max-height: 400px; object-fit: contain;" 
-               alt="Report Management Interface">
-          <p class="card-text text-muted mt-2">
-            Report Management: View and email generated reports.
-          </p>
-        </div>
-      </div>
     </div>
+  </div>
+
+  <div class="card my-4 shadow">
+    <div class="card-body text-center">
+      <img src="https://raw.githubusercontent.com/nathabee/GoogleScripts/main/documentation/screenshot/CompetenceApp/screenshot4.png" 
+           class="img-fluid border rounded" 
+           style="max-width: 100%; max-height: 400px; object-fit: contain;" 
+           alt="Report Management Interface">
+      <p class="card-text text-muted mt-2">
+        Report Management: View and email generated reports.
+      </p>
+    </div>
+  </div>
+
+  <div class="mt-4">
+    <h4>Solution Overview</h4>
+    <ol>
+      <li><strong>See Report</strong>
+        <p>Generate the PDF on the server as a blob, return the base64-encoded blob to the client, and use JavaScript to render the PDF in a browser.</p>
+      </li>
+      <li><strong>Download PDF</strong>
+        <p>Reuse the blob returned by the server, and convert the base64-encoded blob into a downloadable link for the user.</p>
+      </li>
+      <li><strong>Email the Report</strong>
+        <p>Pass the blob to a server-side function that attaches it to an email and sends it via <code>GmailApp</code>.</p>
+      </li>
+    </ol>
+  </div>
+</div>
+
 
     <div class="mb-4">
       <h3>Test Type Management</h3>
