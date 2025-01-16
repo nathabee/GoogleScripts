@@ -30,15 +30,28 @@ function doGet(e) {
  * Ensures the folder is unique to this app.
  * @return {GoogleAppsScript.Drive.Folder} The CompetenceAppData folder for the user.
  */
-function getCompetenceAppDataFolder() {
+ function getCompetenceAppDataFolder() {
   const folders = DriveApp.getFoldersByName(COMPETENCE_APP_FOLDER_NAME);
 
   if (folders.hasNext()) {
-    return folders.next(); // Return existing folder if it exists
+    return folders.next(); // Use existing folder
   } else {
-    return DriveApp.createFolder(COMPETENCE_APP_FOLDER_NAME); // Create and return the folder if it doesn't exist
+    return DriveApp.createFolder(COMPETENCE_APP_FOLDER_NAME); // Create and return folder if none exists
   }
 }
+
+
+function ensureUniqueFileName(folder, name) {
+  const files = folder.getFilesByName(name);
+  while (files.hasNext()) {
+    const file = files.next();
+    if (file.getName() === name) {
+      file.setTrashed(true); // Trash the old file with the same name
+    }
+  }
+}
+
+
  
 /**
  * Store a user-specific Sheet ID in the CompetenceAppData folder with history management.
@@ -584,200 +597,239 @@ function getTestsByStudent(studentId) {
 /**
  * Load test results for a specific test.
  */
+
 function getTestResults(testId) {
   const sheetId = getSheetId();
   const sheet = SpreadsheetApp.openById(sheetId).getSheetByName("TestResults");
-
   if (!sheet) throw new Error("TestResults sheet not found.");
 
-  const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 8).getValues();
-  Logger.log(`Backend: getTestResults data : ${JSON.stringify(data)}`);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) throw new Error("No data available in the TestResults sheet.");
 
-  // Filter rows matching testId
+  const data = sheet.getRange(2, 1, lastRow - 1, 8).getValues(); // Ensure numeric arguments
+
+  // Filter rows for the given testId
   const filteredTestResults = data.filter(row => row[1] == testId);
-  Logger.log(`Backend: filteredTestResults : ${JSON.stringify(filteredTestResults)}`);
 
-  // Convert to objects for better readability in the frontend
-  const resultsWithLabels = filteredTestResults.map(row => ({ 
-    description: row[2], // Use the description field for chart labels
-    points: row[3],
-    maxPoints: row[4],
-    seuil1: row[4],
-    seuil2: row[6],
-    seuil3: row[7],
-    totalSeuil: row[8],
+  if (filteredTestResults.length === 0) {
+    Logger.log("No matching test results found for testId: " + testId);
+    return []; // Return an empty array if no matches found
+  }
+
+  // Ensure each row has valid data and fallback values for missing ones
+  return filteredTestResults.map(row => ({
+    description: row[2] || "N/A", // Fallback to "N/A" if empty
+    points: row[3] || 0,
+    maxPoints: row[4] || 1, // Avoid division by zero
+    seuil1: row[5] || 0,
+    seuil2: row[6] || 0,
+    seuil3: row[7] || 0,
+    totalSeuil: row[8] || 0,
   }));
-
-  Logger.log(`Backend: Results with labels: ${JSON.stringify(resultsWithLabels)}`);
-  return resultsWithLabels;
 }
+
 
 // ************************************************************************************
 
 
 
 /**
- * Generate the PDF Report.
+ * Extraction data for the PDF Report.
  */
+
+function fetchReportData(studentId, testId) {
+  const sheetId = getSheetId();
+  const spreadsheet = SpreadsheetApp.openById(sheetId);
+
+  const studentSheet = spreadsheet.getSheetByName("Student");
+
+  const students = studentSheet.getRange(2, 1, studentSheet.getLastRow() - 1, 4).getValues();
+  const student = students.find(row => row[0] == studentId);
+  if (!student) throw new Error("Student not found.");
+
+  const studentName = `${student[1]} ${student[2]}`;
+  const grade = `${student[3]}`;
+
+  const testResults = getTestResults(testId);
+
+  if (testResults.length === 0) {
+    Logger.log(`No test results found for testId: ${testId}`);
+  }
+
+  const labels = testResults.map(r => r.description);
+  const values = testResults.map(r => r.totalSeuil);
+
+  const chartBlob = createRadarChart(labels, values);
+
+  return { studentName, grade, testResults, chartBlob };
+}
+
+
  
 
+/**
+ * Create a radar chart and return it as a Blob.
+ */
+function createRadarChart(labels, values) {
+  const sheetId = getSheetId();
+  const spreadsheet = SpreadsheetApp.openById(sheetId);
+
+  // Create a temporary sheet
+  const tempSheet = spreadsheet.insertSheet("TempChartSheet");
+  Logger.log("Inserting labels and values into the sheet...");
+  tempSheet.getRange(1, 1, labels.length, 1).setValues(labels.map(label => [label]));
+  tempSheet.getRange(1, 2, values.length, 1).setValues(values.map(value => [value]));
+
+  Logger.log("Building radar chart...");
+  const chart = tempSheet.newChart()
+    .setChartType(Charts.ChartType.RADAR)
+    .addRange(tempSheet.getRange(1, 1, labels.length, 2))
+    .setPosition(1, 3, 0, 0)
+    .build();
+  tempSheet.insertChart(chart);
+
+  Logger.log("Fetching chart blob...");
+  const chartBlob = chart.getBlob();
+  Logger.log("Chart blob size: " + chartBlob.getBytes().length);
+
+  if (!chartBlob || chartBlob.getBytes().length === 0) {
+    throw new Error("ChartBlob is empty or invalid.");
+  }
+
+
+  // Cleanup the temporary sheet
+  spreadsheet.deleteSheet(tempSheet);
+
+  return chartBlob;
+
+
+  
+}
+
+
+
+ 
+
+/**
+ * Generate the PDF Report with HTML template.
+ */
 function generatePDFUrl(studentId, testId) {
   try {
-    const sheetId = getSheetId();
-    const spreadsheet = SpreadsheetApp.openById(sheetId);
-    const tmpSheetName = "Tmp";
-    let tmpSheet = spreadsheet.getSheetByName(tmpSheetName);
+    Logger.log("Starting PDF generation...");
 
-    // Ensure the Tmp sheet exists
-    if (!tmpSheet) {
-      tmpSheet = spreadsheet.insertSheet(tmpSheetName);
-    } else {
-      // Clear sheet and remove old charts
-      tmpSheet.getCharts().forEach(chart => tmpSheet.removeChart(chart));
-      tmpSheet.clear();
+    const data = fetchReportData(studentId, testId);
+    Logger.log("Fetched report data: " + JSON.stringify(data));
+
+    const { studentName, grade, testResults, chartBlob } = data;
+
+    if (!chartBlob || chartBlob.getBytes().length === 0) {
+      throw new Error("ChartBlob is empty or not generated.");
     }
 
-    const studentSheet = spreadsheet.getSheetByName("Student");
-    const testResultsSheet = spreadsheet.getSheetByName("TestResults");
-
-    // Fetch student information
-    const students = studentSheet.getRange(2, 1, studentSheet.getLastRow() - 1, 4).getValues();
-    const student = students.find(row => row[0] == studentId);
-    if (!student) throw new Error("Student not found.");
-    const studentName = `${student[1]} ${student[2]}`;
-    const reportName =  `${studentName} ${testId}`;
-    const grade = `${student[3]}`;
-
-    // Fetch test results
-    const results = testResultsSheet.getRange(2, 1, testResultsSheet.getLastRow() - 1, 8).getValues();
-    const filteredResults = results.filter(row => row[1] == testId).map(row => ({
-      description: row[2],
-      points: row[3],
-      maxPoints: row[4],
-      seuil1: row[5],
-      seuil2: row[6],
-      seuil3: row[7],
-      totalSeuil: row[8],
-    }));
-    if (filteredResults.length === 0) throw new Error("No results found for the test.");
-
-    // Prepare radar chart data
-    const labels = filteredResults.map(r => r.description);
-    const values = filteredResults.map(r => r.totalSeuil);
-
-    // Write radar chart data to Tmp sheet
-    tmpSheet.getRange(1, 1, labels.length, 1).setValues(labels.map(label => [label]));
-    tmpSheet.getRange(1, 2, values.length, 1).setValues(values.map(value => [value]));
-
-    // Create radar chart
-    const chart = tmpSheet.newChart()
-      .setChartType(Charts.ChartType.RADAR)
-      .addRange(tmpSheet.getRange(1, 1, labels.length, 2))
-      .setPosition(5, 1, 0, 0)
-      .build();
-    tmpSheet.insertChart(chart);
-
-    const chartBlob = chart.getBlob().getAs('image/png');
     const chartImageBase64 = Utilities.base64Encode(chartBlob.getBytes());
+    Logger.log("Generated radar chart as Base64 image");
 
-    // Prepare data object for the template
-    const data = {
-      studentName: studentName,
-      grade: grade,
-      testResults: filteredResults,
-    };
+    const filteredTestResults = testResults.map(row => ({
+      description: row.description || "N/A",
+      points: row.points || 0,
+      maxPoints: row.maxPoints || 0,
+      seuil1: row.seuil1 || 0,
+      seuil2: row.seuil2 || 0,
+      seuil3: row.seuil3 || 0,
+      totalSeuil: row.totalSeuil || 0,
+    }));
 
-    // Generate HTML for the PDF
-    const template = HtmlService.createTemplateFromFile('PdfReportTemplate');
-    template.data = data;
-    template.chartImage = chartImageBase64; // Embed radar chart as Base64 image
+    const template = HtmlService.createTemplateFromFile("PdfReportTemplate");
+    template.data = { studentName, grade, testResults: filteredTestResults };
+    template.chartImage = chartImageBase64;
+
     const htmlOutput = template.evaluate().getContent();
+    Logger.log("Generated HTML content from template");
 
-    // Convert the HTML content to a PDF
     const pdfBlob = HtmlService.createHtmlOutput(htmlOutput)
       .getBlob()
-      .setName(reportName)
-      .getAs('application/pdf');
+      .setName(`${studentName}_${testId}.pdf`)
+      .setContentType('application/pdf');
+    Logger.log("Converted HTML to PDF Blob");
 
-    // Save PDF to Google Drive
-
-    const file = DriveApp.createFile(pdfBlob);
+    const folder = getCompetenceAppDataFolder();
+    const file = folder.createFile(pdfBlob);
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    Logger.log(`File saved to Drive: ${file.getName()} - ${file.getUrl()}`);
 
     const fileUrl = `https://drive.google.com/uc?id=${file.getId()}&export=download`;
+    Logger.log("Returning file URL...");
     return { fileUrl, reportName: file.getName() };
   } catch (error) {
+    Logger.log("Error during PDF generation: " + error.message);
     throw new Error(`Failed to generate PDF: ${error.message}`);
   }
 }
 
 
 
-function generatePDFWithDocTemplate(data) {
-  const templateId = "YOUR_TEMPLATE_DOC_ID"; // Replace with your Google Docs template ID
-  const folderId = "YOUR_OUTPUT_FOLDER_ID"; // Replace with your Google Drive folder ID
+/**
+ * Generate the PDF Report with DOC template.
+ */
+function generatePDFWithDocTemplate(studentId, testId) {
+  try {
+    const data = fetchReportData(studentId, testId);
+    Logger.log("Fetched report data: " + JSON.stringify(data));
+    const { studentName, grade, testResults, chartBlob } = data;
 
-  // Open the template and make a copy
-  const template = DriveApp.getFileById(templateId);
-  const folder = DriveApp.getFolderById(folderId);
-  const documentCopy = template.makeCopy(`Test_Report_${data.studentName}`, folder);
-  const doc = DocumentApp.openById(documentCopy.getId());
+    const template = DriveApp.getFileById(DEFAULT_TEMPLATE_REPORT_ID);
+    const folder = getCompetenceAppDataFolder();
+    const documentCopy = template.makeCopy(`Test_Report_${studentName}_${testId}`, folder);
+    const doc = DocumentApp.openById(documentCopy.getId());
 
-  // Replace placeholders in the document
-  const body = doc.getBody();
-  body.replaceText("<<studentName>>", data.studentName || "N/A");
-  body.replaceText("<<grade>>", data.grade || "N/A");
+    const body = doc.getBody();
+    body.replaceText("<<studentName>>", studentName || "N/A");
+    body.replaceText("<<grade>>", grade || "N/A");
 
-  // Replace the table placeholder
-  let tableHTML = `
-    <table>
-      <tr>
-        <th>Description</th>
-        <th>Points</th>
-        <th>Max Points</th>
-        <th>Seuil 1</th>
-        <th>Seuil 2</th>
-        <th>Seuil 3</th>
-        <th>Total Seuil</th>
-      </tr>
-      ${data.testResults
-        .map(result => `
-          <tr>
-            <td>${result.description}</td>
-            <td>${result.points}</td>
-            <td>${result.maxPoints}</td>
-            <td>${result.seuil1}</td>
-            <td>${result.seuil2}</td>
-            <td>${result.seuil3}</td>
-            <td>${result.totalSeuil}</td>
-          </tr>
-        `)
-        .join("")}
-    </table>
-  `;
-  body.replaceText("<<table>>", tableHTML);
+    // Validate and prepare table data
+    const tableData = [
+      ["Description", "Points", "Max Points", "Seuil 1", "Seuil 2", "Seuil 3", "Total Seuil"], // Header row
+      ...testResults.map(result => [
+        result.description || "N/A",
+        result.points || 0,
+        result.maxPoints || 0,
+        result.seuil1 || 0,
+        result.seuil2 || 0,
+        result.seuil3 || 0,
+        result.totalSeuil || 0,
+      ]),
+    ];
+    Logger.log("Validated table data: " + JSON.stringify(tableData));
 
-  // Replace the radar chart placeholder
-  const chartBlob = Utilities.base64Decode(data.chartImage);
-  const inlineImage = body.appendImage(Utilities.newBlob(chartBlob, "image/png"));
-  body.replaceText("<<chartImage>>", ""); // Remove placeholder text
-  body.insertParagraph(body.getChildIndex(inlineImage.getParent()), "Radar Chart");
+    // Remove placeholder and insert table
+    body.replaceText("<<table>>", "");
+    body.appendTable(tableData);
 
-  // Save and close the document
-  doc.saveAndClose();
+    // Insert radar chart
+    if (!chartBlob || chartBlob.getBytes().length === 0) {
+      throw new Error("ChartBlob is empty or not generated.");
+    }
+    const inlineImage = body.insertImage(0, chartBlob);
+    body.insertParagraph(body.getChildIndex(inlineImage.getParent()), "Radar Chart");
 
-  // Convert the document to a PDF
-  const pdfBlob = documentCopy.getAs("application/pdf");
+    doc.saveAndClose();
 
-  // Save the PDF back to Google Drive
-  const pdfFile = folder.createFile(pdfBlob);
-  Logger.log(`PDF created: ${pdfFile.getUrl()}`);
-
-  // Return the URL of the PDF
-  return pdfFile.getUrl();
+    // Convert to PDF and save to Drive
+    const pdfBlob = documentCopy.getAs("application/pdf");
+    const pdfFile = folder.createFile(pdfBlob);
+    return pdfFile.getUrl();
+  } catch (error) {
+    throw new Error(`Failed to generate PDF with Doc template: ${error.message}`);
+  }
 }
 
 
+
+
+/**
+ * email the PDF Report.
+ */
+ 
 
 function emailReportToUser(fileUrl) {
   try {
