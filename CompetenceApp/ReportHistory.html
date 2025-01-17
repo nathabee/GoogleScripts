@@ -14,279 +14,89 @@
 
 <body>
   {{NAVBAR}}
-
-
-
-
+  
   <main class="container my-4">
-    <div class="row">
-      <div class="col-md-6">
-        <label for="studentSelect" class="form-label">Select a Student:</label>
-        <select id="studentSelect" class="form-select" onchange="onStudentChange()"></select>
-      </div>
+    <h1 class="text-center">Available Reports</h1>
+    <div id="statusMessage" class="text-center text-info mt-2" style="display: none;"></div>
+    <div id="reportsTable" class="mt-4">
+      <!-- The list of PDFs will be dynamically populated here -->
+      <p class="text-center">Loading files...</p>
     </div>
-
-    <div>THIS IS NOT DEVELOPPED YET. WILL LIST TESTS AND BE ABLE TO GENERATE PDF OR EMAIL </div>
-
-    <div id="testDetails" class="mt-4">
-      <!-- Test details will be dynamically populated here -->
-    </div>
-    <div id="statusMessage" class="text-center text-info mt-2" style="display: none;"></div> <!-- Status message -->
-
- 
-    <div class="text-center mt-4">
-          <!-- Generate PDF button starts as disabled -->
-      <button id="emailReportBtn" class="btn btn-info" onclick="emailReport()" disabled>Email Me</button>
-    </div>
-
-    
-
   </main>
+  
   <!-- Dynamically include footer -->
   <?!= include('Footer') ?>
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Load the list of files when the page loads
+    window.onload = loadFiles;
 
-<script>
-  // Declare global variables once
-  let selectedStudentId = null;
-  let selectedTestId = null;
-  let generatedFileUrl = null;
-
-  // Display a status message
-  function showStatusMessage(message) {
-    const statusMessage = document.getElementById('statusMessage');
-    statusMessage.textContent = message;
-    statusMessage.style.display = 'block';
-  }
-
-  // Hide the status message
-  function hideStatusMessage() {
-    const statusMessage = document.getElementById('statusMessage');
-    statusMessage.style.display = 'none';
-  }
-
-  // Load students on page load
-  function loadStudents() {
-    const studentSelect = document.getElementById('studentSelect');
-    studentSelect.innerHTML = '<option>Loading students...</option>'; // Indicate loading state
-    google.script.run.withSuccessHandler(renderStudents).getStudents();
-  }
-
-  // Render the list of students in the dropdown
-  function renderStudents(students) {
-    const studentSelect = document.getElementById('studentSelect');
-    studentSelect.innerHTML = '<option value="">Select a student</option>'; // Default option
-
-    if (students.length === 0) {
-      studentSelect.innerHTML = '<option value="">No students available</option>';
-      return;
+    function showStatusMessage(message) {
+      const statusMessage = document.getElementById('statusMessage');
+      statusMessage.textContent = message;
+      statusMessage.style.display = 'block';
     }
 
-    students.forEach(student => {
-      const option = document.createElement('option');
-      option.value = student.studentId;
-      option.textContent = `${student.firstName} ${student.lastName} (${student.grade})`;
-      studentSelect.appendChild(option);
-    });
-  }
-
-  // Handle student selection
-  function onStudentChange() {
-    const studentSelect = document.getElementById('studentSelect');
-    const testSelect = document.getElementById('testSelect');
-    const generatePdfBtn = document.getElementById('generatePdfBtn');
-
-    selectedStudentId = studentSelect.value;
-
-    // Reset tests and results
-    testSelect.innerHTML = '<option>Loading tests...</option>'; // Show loading state
-    clearTestResults();
-    generatePdfBtn.disabled = true; // Disable the button until tests and results are loaded
-
-    if (!selectedStudentId) {
-      testSelect.innerHTML = '<option value="">Select a student first</option>';
-      return;
+    function hideStatusMessage() {
+      document.getElementById('statusMessage').style.display = 'none';
     }
 
-    // Fetch tests for the selected student
-    google.script.run
-      .withSuccessHandler(renderTests)
-      .withFailureHandler(() => {
-        testSelect.innerHTML = '<option value="">Failed to load tests</option>';
-      })
-      .getTestsByStudent(selectedStudentId);
-  }
-
-  // Render the list of tests in the dropdown
-  function renderTests(tests) {
-    const testSelect = document.getElementById('testSelect');
-    testSelect.innerHTML = '<option value="">Select a test</option>'; // Default option
-
-    if (!tests || tests.length === 0) {
-      testSelect.innerHTML = '<option value="">No tests available</option>';
-      return;
+    function loadFiles() {
+      showStatusMessage("Fetching available reports...");
+      google.script.run.withSuccessHandler(renderFileList).getAvailableReports();
     }
 
-    tests.forEach(test => {
-      const option = document.createElement('option');
-      option.value = test.testId;
-      option.textContent = `${test.catalogueName} - ${test.date}`;
-      testSelect.appendChild(option);
-    });
-  }
+    function renderFileList(files) {
+      hideStatusMessage();
 
-  // Handle test selection
-  function onTestChange() {
-    const testSelect = document.getElementById('testSelect');
-    const generatePdfBtn = document.getElementById('generatePdfBtn');
+      const tableDiv = document.getElementById("reportsTable");
 
-    selectedTestId = testSelect.value;
-
-    // Reset results and disable button until results are displayed
-    clearTestResults();
-    generatePdfBtn.disabled = true;
-
-    if (!selectedTestId) return;
-
-    // Show "loading test results" message
-    showStatusMessage('Loading test results...');
-
-    // Fetch test results
-    google.script.run
-      .withSuccessHandler(results => {
-        renderTestDetails(results);
-        generatePdfBtn.disabled = false; // Enable button after results are displayed
-        hideStatusMessage(); // Hide the loading message
-      })
-      .withFailureHandler(() => {
-        alert('Failed to load test results.');
-        hideStatusMessage(); // Hide the loading message in case of failure
-      })
-      .getTestResults(selectedTestId);
-  }
-
-  // Render test details
-  function renderTestDetails(results) {
-    const resultDiv = document.getElementById('testDetails');
-
-    if (results && results.length > 0) {
-      const columnOrder = [
-        "description",
-        "points",
-        "maxPoints",
-        "seuil1",
-        "seuil2",
-        "seuil3",
-        "totalSeuil"
-      ];
+      if (!files || files.length === 0) {
+        tableDiv.innerHTML = '<p class="text-center">No files available.</p>';
+        return;
+      }
 
       let tableHTML = `
-        <h3>Test Results</h3>
-        <table class="table table-bordered table-striped">
+        <table class="table table-bordered">
           <thead>
             <tr>
-              ${columnOrder.map(header => `<th>${header}</th>`).join('')}
+              <th>File Name</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            ${results.map(row => `
+            ${files.map(file => `
               <tr>
-                ${columnOrder.map(header => `<td>${row[header] !== undefined ? row[header] : ''}</td>`).join('')}
+                <td>${file.name}</td>
+                <td>
+                  <button class="btn btn-info btn-sm" onclick="sendFileByEmail('${file.url}')">Send me as Email</button>
+                  <a href="${file.url}" class="btn btn-success btn-sm" download>Download PDF</a>
+                </td>
               </tr>
             `).join('')}
           </tbody>
         </table>
       `;
 
-      resultDiv.innerHTML = tableHTML;
-    } else {
-      resultDiv.innerHTML = '<p>No details available for this test.</p>';
+      tableDiv.innerHTML = tableHTML;
     }
-  }
 
-  // Clear the test dropdown and results section
-  function clearTestsAndResults() {
-    const testSelect = document.getElementById('testSelect');
-    testSelect.innerHTML = '<option value="">Select a test</option>';
-    clearTestResults();
-  }
-
-  // Clear the results section
-  function clearTestResults() {
-    const resultDiv = document.getElementById('testDetails');
-    resultDiv.innerHTML = '';
-  }
-
-  // Print the PDF
-  function printPDF() {
-    if (selectedStudentId && selectedTestId) {
-      // Show "preparing PDF" message
-      showStatusMessage('Preparing PDF...');
-
+    function sendFileByEmail(fileUrl) {
+      showStatusMessage("Sending file via email...");
       google.script.run
-        .withSuccessHandler(response => {
-          downloadPDF(response);
-          hideStatusMessage(); // Hide the message after the PDF is downloaded
-
-          // Enable "Email Me" button
-          const emailBtn = document.getElementById('emailReportBtn');
-          emailBtn.disabled = false;
-
-          // Store the generated file URL
-          generatedFileUrl = response.fileUrl;
+        .withSuccessHandler(() => {
+          alert("The file has been sent to your email.");
+          hideStatusMessage();
         })
         .withFailureHandler(error => {
-          alert(`Error: ${error.message}`);
-          hideStatusMessage(); // Hide the message in case of failure
+          alert("Failed to send the file: " + error.message);
+          hideStatusMessage();
         })
-        .generatePDFUrl(selectedStudentId, selectedTestId);
-    } else {
-      alert('Please select both a student and a test first.');
+        .emailFileToUser(fileUrl);
     }
-  }
-
-  function downloadPDF(response) {
-    if (!response || !response.fileUrl) {
-      alert('No valid file URL returned.');
-      return;
-    }
-
-    const fileUrl = response.fileUrl;
-    const link = document.createElement('a');
-    link.href = fileUrl;
-    link.target = '_blank'; // Open in a new tab
-    link.download = response.reportName || 'Performance_Report.pdf'; // Default name
-
-    document.body.appendChild(link);
-    link.click(); // Must be user-initiated
-    document.body.removeChild(link);
-
-    alert(`PDF successfully downloaded from ${fileUrl}`);
-  }
-
-  function emailReport() {
-    if (!generatedFileUrl) {
-      alert('Please generate the report first.');
-      return;
-    }
-
-    google.script.run
-      .withSuccessHandler(() => {
-        alert('The report has been emailed successfully!');
-      })
-      .withFailureHandler(error => {
-        alert('Failed to email the report: ' + error.message);
-      })
-      .emailReportToUser(generatedFileUrl);
-  }
-
-  // Load students on page load
-  window.onload = loadStudents;
-</script>
-
-
+  </script>
 </body>
 
 </html>

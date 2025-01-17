@@ -31,16 +31,14 @@
       <!-- Test details will be dynamically populated here -->
     </div>
     <div id="statusMessage" class="text-center text-info mt-2" style="display: none;"></div>
+    <div id="pdfInfoMessage" class="alert alert-info mt-4" style="display: none;"></div>
 
     <div class="text-center mt-4">
       <div class="btn-group" role="group" aria-label="Report Actions">
-        <button id="generatePdfHtmlBtn" class="btn btn-success" onclick="generateHtmlPdf()" disabled>Generate PDF (HTML)</button>
-        <button id="generatePdfDocBtn" class="btn btn-warning" onclick="generateDocPdf()" disabled>Generate PDF (Doc)</button>
-        <button id="emailReportBtn" class="btn btn-info" onclick="emailReport()" disabled>Email Report</button>
+        <button id="generatePdfHtmlBtn" class="btn btn-success" onclick="generateHtmlPdf()">Show Results</button>
+        <button id="generatePdfDocBtn" class="btn btn-warning" onclick="generateDocPdf()">Generate PDF (from Doc Template)</button>
       </div>
     </div>
- 
-
   </main>
 
   <?!= include('Footer') ?>
@@ -50,7 +48,6 @@
   <script>
     let selectedStudentId = null;
     let selectedTestId = null;
-    let generatedFileUrl = null;
 
     function showStatusMessage(message) {
       const statusMessage = document.getElementById('statusMessage');
@@ -85,54 +82,24 @@
       });
     }
 
-  // Clear the results section
-  function clearTestResults() {
-    const resultDiv = document.getElementById('testDetails');
-    resultDiv.innerHTML = ''; // Clear any previous results
-  }
+    function onStudentChange() {
+      const studentSelect = document.getElementById('studentSelect');
+      const testSelect = document.getElementById('testSelect');
+      selectedStudentId = studentSelect.value;
 
-  // Example usage in onStudentChange
-  function onStudentChange() {
-    const studentSelect = document.getElementById('studentSelect');
-    const testSelect = document.getElementById('testSelect');
-    const generatePdfHtmlBtn = document.getElementById('generatePdfHtmlBtn');
-    const generatePdfDocBtn = document.getElementById('generatePdfDocBtn');
-    const emailReportBtn = document.getElementById('emailReportBtn');
+      testSelect.innerHTML = '<option>Loading tests...</option>';
+      clearTestResults();
+      disableButtons();
 
-    selectedStudentId = studentSelect.value;
+      if (!selectedStudentId) {
+        testSelect.innerHTML = '<option value="">Select a student first</option>';
+        return;
+      }
 
-    // Reset tests and results
-    testSelect.innerHTML = '<option>Loading tests...</option>'; // Show loading state
-    clearTestResults(); // Clear previous test results
-    disableButtons(); // Disable action buttons
-
-    if (!selectedStudentId) {
-      testSelect.innerHTML = '<option value="">Select a student first</option>';
-      return;
+      google.script.run
+        .withSuccessHandler(renderTests)
+        .getTestsByStudent(selectedStudentId);
     }
-
-    // Fetch tests for the selected student
-    google.script.run
-      .withSuccessHandler(renderTests)
-      .withFailureHandler(() => {
-        testSelect.innerHTML = '<option value="">Failed to load tests</option>';
-      })
-      .getTestsByStudent(selectedStudentId);
-  }
-
-  // Function to disable all action buttons
-  function disableButtons() {
-    document.getElementById('generatePdfHtmlBtn').disabled = true;
-    document.getElementById('generatePdfDocBtn').disabled = true;
-    document.getElementById('emailReportBtn').disabled = true;
-  }
-
-  // Function to enable action buttons (if necessary)
-  function enableButtons() {
-    document.getElementById('generatePdfHtmlBtn').disabled = false;
-    document.getElementById('generatePdfDocBtn').disabled = false;
-  }
-
 
     function renderTests(tests) {
       const testSelect = document.getElementById('testSelect');
@@ -214,68 +181,61 @@
         return;
       }
 
-      showStatusMessage("Generating PDF (HTML Template)...");
+      showStatusMessage("Generating HTML report...");
+      google.script.run
+        .withSuccessHandler(htmlContent => {
+          const resultDiv = document.getElementById("testDetails");
+          resultDiv.innerHTML = htmlContent;
+          hideStatusMessage();
+        })
+        .withFailureHandler(error => {
+          alert(`Failed to generate HTML report: ${error.message}`);
+          hideStatusMessage();
+        })
+        .generateHTMLReport(selectedStudentId, selectedTestId);
+    }
+
+    function generateDocPdf() {
+      if (!selectedStudentId || !selectedTestId) {
+        alert('Please select both a student and a test.');
+        return;
+      }
+
+      showStatusMessage('Generating PDF (Doc Template)...');
       google.script.run
         .withSuccessHandler(response => {
-          generatedFileUrl = response.fileUrl;
           hideStatusMessage();
-          enableButtons();
+          displayPdfInfo(response.fileName, response.fileUrl);
         })
         .withFailureHandler(error => {
           alert(`Failed to generate PDF: ${error.message}`);
           hideStatusMessage();
         })
-        .generatePDFUrl(selectedStudentId, selectedTestId);
+        .generatePDFWithDocTemplate(selectedStudentId, selectedTestId);
     }
 
-
-function generateDocPdf() {
-  if (!selectedStudentId || !selectedTestId) {
-    alert('Please select both a student and a test.');
-    return;
-  }
-
-  showStatusMessage('Generating PDF (Doc Template)...');
-  google.script.run
-    .withSuccessHandler(response => {
-      generatedFileUrl = response; // Save the URL of the generated file
-      hideStatusMessage();
-      // Open the PDF in a new tab
-      window.open(generatedFileUrl, '_blank');
-    })
-    .withFailureHandler(error => {
-      alert(`Failed to generate PDF: ${error.message}`);
-      hideStatusMessage();
-    })
-    .generatePDFWithDocTemplate(selectedStudentId, selectedTestId);
-}
-
-
-
-    function emailReport() {
-      if (!generatedFileUrl) {
-        alert('Please generate the report first.');
-        return;
-      }
-
-      showStatusMessage('Sending report via email...');
-      google.script.run
-        .withSuccessHandler(() => {
-          alert('Report sent successfully!');
-          hideStatusMessage();
-        })
-        .emailReportToUser(generatedFileUrl);
+    function displayPdfInfo(fileName, fileUrl) {
+      const pdfInfoMessage = document.getElementById('pdfInfoMessage');
+      pdfInfoMessage.innerHTML = `
+        <strong>Generated PDF:</strong> ${fileName} <br>
+        <a href="${fileUrl}" target="_blank">Download PDF</a>
+      `;
+      pdfInfoMessage.style.display = 'block';
     }
 
     function disableButtons() {
       document.getElementById('generatePdfHtmlBtn').disabled = true;
       document.getElementById('generatePdfDocBtn').disabled = true;
-      document.getElementById('emailReportBtn').disabled = true;
     }
 
     function enableButtons() {
       document.getElementById('generatePdfHtmlBtn').disabled = false;
       document.getElementById('generatePdfDocBtn').disabled = false;
+    }
+
+    function clearTestResults() {
+      const resultDiv = document.getElementById('testDetails');
+      resultDiv.innerHTML = '';
     }
 
     window.onload = loadStudents;

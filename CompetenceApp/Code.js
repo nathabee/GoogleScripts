@@ -706,6 +706,50 @@ function createRadarChart(labels, values) {
   
 }
 
+/**
+ * Generate the HTML Report with a template.
+ */
+function generateHTMLReport(studentId, testId) {
+  try {
+    Logger.log("Starting HTML report generation...");
+
+    const data = fetchReportData(studentId, testId);
+    Logger.log("Fetched report data: " + JSON.stringify(data));
+
+    const { studentName, grade, testResults, chartBlob } = data;
+
+    if (!chartBlob || chartBlob.getBytes().length === 0) {
+      throw new Error("ChartBlob is empty or not generated.");
+    }
+
+    const chartImageBase64 = Utilities.base64Encode(chartBlob.getBytes());
+    Logger.log("Generated radar chart as Base64 image");  
+
+    const filteredTestResults = testResults.map(row => ({
+      description: row.description || "N/A",
+      points: row.points || 0,
+      maxPoints: row.maxPoints || 0,
+      seuil1: row.seuil1 || 0,
+      seuil2: row.seuil2 || 0,
+      seuil3: row.seuil3 || 0,
+      totalSeuil: row.totalSeuil || 0,
+    }));
+
+    const template = HtmlService.createTemplateFromFile("PdfReportTemplate");
+    template.data = { studentName, grade, testResults: filteredTestResults };
+    template.chartImage = chartImageBase64;
+
+    const htmlOutput = template.evaluate().getContent();
+    Logger.log("Generated HTML content from template");
+
+    // Return the HTML content directly to the frontend
+    return htmlOutput;
+
+  } catch (error) {
+    Logger.log("Error during HTML generation: " + error.message);
+    throw new Error(`Failed to generate HTML: ${error.message}`);
+  }
+}
 
 
  
@@ -825,9 +869,50 @@ function generatePDFWithDocTemplate(studentId, testId) {
 
 
 
+/**
+ * liste available report in the folder
+ */
+
+function getAvailableReports() {
+  const folder = getCompetenceAppDataFolder();
+  const files = [];
+  const fileIterator = folder.getFilesByType(MimeType.PDF);
+
+  while (fileIterator.hasNext()) {
+    const file = fileIterator.next();
+    files.push({
+      name: file.getName(),
+      url: file.getUrl()
+    });
+  }
+
+  return files;
+}
 
 /**
- * email the PDF Report.
+ * email the PDF Report. 
+ */
+ 
+
+function emailFileToUser(fileUrl) {
+  const userEmail = Session.getActiveUser().getEmail();
+  const fileId = fileUrl.match(/[-\w]{25,}/)[0]; // Extract the file ID from the URL
+  const file = DriveApp.getFileById(fileId);
+
+  if (!file) {
+    throw new Error("File not found.");
+  }
+
+  const subject = "Requested Report: " + file.getName();
+  const body = "Dear user,\n\nPlease find the requested report attached.\n\nBest regards,\nThe Team";
+  GmailApp.sendEmail(userEmail, subject, body, {
+    attachments: [file.getBlob()]
+  });
+}
+
+
+/**
+ * email the PDF Report. OBSOLETE
  */
  
 
